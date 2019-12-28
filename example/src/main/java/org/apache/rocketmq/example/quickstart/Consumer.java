@@ -30,7 +30,7 @@ import org.apache.rocketmq.common.message.MessageExt;
  */
 public class Consumer {
 
-    public static void main(String[] args) throws InterruptedException, MQClientException {
+    public static void main1(String[] args) throws InterruptedException, MQClientException {
 
         /*
          * Instantiate with specified consumer group name.
@@ -48,6 +48,7 @@ public class Consumer {
          * }
          * </pre>
          */
+        consumer.setNamesrvAddr("127.0.0.1:9876");
 
         /*
          * Specify where to start in case the specified consumer group is a brand new one.
@@ -79,4 +80,5 @@ public class Consumer {
 
         System.out.printf("Consumer Started.%n");
     }
+
 }
