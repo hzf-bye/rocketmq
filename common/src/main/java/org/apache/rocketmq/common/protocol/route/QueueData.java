@@ -20,11 +20,25 @@
  */
 package org.apache.rocketmq.common.protocol.route;
 
+import com.alibaba.fastjson.JSON;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 public class QueueData implements Comparable<QueueData> {
     private String brokerName;
     private int readQueueNums;
     private int writeQueueNums;
+    /**
+     * 读写权限，具体含义参考PermName
+     * @see org.apache.rocketmq.common.constant.PermName
+     */
     private int perm;
+    /**
+     * topic同步标志，具体含义参考TopicSysFlag
+     * @see org.apache.rocketmq.common.sysflag.TopicSysFlag
+     */
     private int topicSynFlag;
 
     public int getReadQueueNums() {
@@ -114,5 +128,32 @@ public class QueueData implements Comparable<QueueData> {
 
     public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
+    }
+
+    public static void main(String[] args) {
+        HashMap<String/* topic */, List<QueueData>> topicQueueTable = new HashMap<String, List<QueueData>>();
+
+        List<QueueData> queueDataList = new ArrayList<QueueData>();
+
+        QueueData queueData = new QueueData();
+        queueData.setBrokerName("broker-1");
+        queueData.setReadQueueNums(4);
+        queueData.setWriteQueueNums(4);
+        queueData.setPerm(6);
+        queueData.setTopicSynFlag(0);
+
+        QueueData queueData1 = new QueueData();
+        queueData1.setBrokerName("broker-1");
+        queueData1.setReadQueueNums(4);
+        queueData1.setWriteQueueNums(4);
+        queueData1.setPerm(6);
+        queueData1.setTopicSynFlag(0);
+
+        queueDataList.add(queueData);
+        queueDataList.add(queueData1);
+
+        topicQueueTable.put("topic1", queueDataList);
+        System.out.println(JSON.toJSONString(topicQueueTable));
+
     }
 }

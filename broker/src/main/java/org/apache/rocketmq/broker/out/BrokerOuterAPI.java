@@ -124,19 +124,30 @@ public class BrokerOuterAPI {
         final boolean compressed) {
 
         final List<RegisterBrokerResult> registerBrokerResultList = Lists.newArrayList();
+        //获取所有NamsServer列表
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         if (nameServerAddressList != null && nameServerAddressList.size() > 0) {
 
             final RegisterBrokerRequestHeader requestHeader = new RegisterBrokerRequestHeader();
+            //broker地址
             requestHeader.setBrokerAddr(brokerAddr);
+            //brokerId，0-Master，1-Slave
             requestHeader.setBrokerId(brokerId);
+            //broker名称
             requestHeader.setBrokerName(brokerName);
+            //集群名称
             requestHeader.setClusterName(clusterName);
+            //master地址，初次请求时该值为空，slave向NameServer注册后返回。
             requestHeader.setHaServerAddr(haServerAddr);
             requestHeader.setCompressed(compressed);
 
             RegisterBrokerBody requestBody = new RegisterBrokerBody();
+            /*
+             * 主题配置，topicConfigWrapper内部封装的是topicConfigManager中的topicConfigTable，内部存储的是Broker启动时默认的一些topic
+             * Broker中topic默认存储在${ROCKETMQ_HOME}/store/config/topics.json
+             */
             requestBody.setTopicConfigSerializeWrapper(topicConfigWrapper);
+            //消息过滤服务器列表
             requestBody.setFilterServerList(filterServerList);
             final byte[] body = requestBody.encode(compressed);
             final int bodyCrc32 = UtilAll.crc32(body);

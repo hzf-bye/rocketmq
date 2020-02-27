@@ -19,9 +19,25 @@ package org.apache.rocketmq.common.message;
 import java.util.HashSet;
 
 public class MessageConst {
+
+    /**
+     * 消息扩展属性
+     */
+    /**
+     * 消息TAG，用于消息过滤
+     */
     public static final String PROPERTY_KEYS = "KEYS";
+    /**
+     * Message索引键，多个用空格隔开，RocketMQ可以根据这些key快速检索到消息
+     */
     public static final String PROPERTY_TAGS = "TAGS";
+    /**
+     * 消息发送时是否等消息存储完成后再返回
+     */
     public static final String PROPERTY_WAIT_STORE_MSG_OK = "WAIT";
+    /**
+     * 消息延迟级别，用于定时消息或者重试消息。
+     */
     public static final String PROPERTY_DELAY_TIME_LEVEL = "DELAY";
     public static final String PROPERTY_RETRY_TOPIC = "RETRY_TOPIC";
     public static final String PROPERTY_REAL_TOPIC = "REAL_TOPIC";

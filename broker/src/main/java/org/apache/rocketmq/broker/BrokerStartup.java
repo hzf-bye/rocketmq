@@ -88,12 +88,16 @@ public class BrokerStartup {
     }
 
     public static BrokerController createBrokerController(String[] args) {
+
+        //设置rocketMQ版本信息
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
 
+        //验远程通信的发送缓存是否为空, 如果为空则设置默认值大小为131072
         if (null == System.getProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_SNDBUF_SIZE)) {
             NettySystemConfig.socketSndbufSize = 131072;
         }
 
+        //验远程通信的接收缓存是否为空, 如果为空则设置默认值大小为131072
         if (null == System.getProperty(NettySystemConfig.COM_ROCKETMQ_REMOTING_SOCKET_RCVBUF_SIZE)) {
             NettySystemConfig.socketRcvbufSize = 131072;
         }
@@ -121,6 +125,10 @@ public class BrokerStartup {
                 messageStoreConfig.setAccessMessageInMemoryMaxRatio(ratio);
             }
 
+            /*
+             * 如果启动命令行参数包含 -c 参数，会读取配置到Propertis中, 让后通过MixAll.properties2Object(),
+             * 将读取的配置文件信息存入brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig对应的实体类中
+             */
             if (commandLine.hasOption('c')) {
                 String file = commandLine.getOptionValue('c');
                 if (file != null) {
@@ -147,6 +155,7 @@ public class BrokerStartup {
                 System.exit(-2);
             }
 
+            //从brokerConfig获取namesrvAddr信息，并将地址信息转为SocketAddress对象
             String namesrvAddr = brokerConfig.getNamesrvAddr();
             if (null != namesrvAddr) {
                 try {
@@ -162,6 +171,7 @@ public class BrokerStartup {
                 }
             }
 
+            //设置当前broker的角色(master,slave), 如果是同步/异步MASTER信息，brokerId=0 ;如果是SLAVE信息，brokerId > 0 ; 如果brokerId < 0 , 会抛出异常
             switch (messageStoreConfig.getBrokerRole()) {
                 case ASYNC_MASTER:
                 case SYNC_MASTER:
@@ -185,6 +195,7 @@ public class BrokerStartup {
             lc.reset();
             configurator.doConfigure(brokerConfig.getRocketmqHome() + "/conf/logback_broker.xml");
 
+            //打印配置信息
             if (commandLine.hasOption('p')) {
                 InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
                 MixAll.printObjectProperties(console, brokerConfig);
@@ -201,6 +212,7 @@ public class BrokerStartup {
                 System.exit(0);
             }
 
+            //将log的信息配置到brokerConfig，nettyServerConfig，nettyClientConfig，messageStoreConfig对象中
             log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
             MixAll.printObjectProperties(log, brokerConfig);
             MixAll.printObjectProperties(log, nettyServerConfig);
@@ -221,6 +233,7 @@ public class BrokerStartup {
                 System.exit(-3);
             }
 
+            //通过Runtime.getRuntime().addShutdownHook()设置，在jvm关闭之前需要处理的一些事情，系统会处理内存清理、对象销毁等一系列操作
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 private volatile boolean hasShutdown = false;
                 private AtomicInteger shutdownTimes = new AtomicInteger(0);

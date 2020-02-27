@@ -76,9 +76,21 @@ public class RequestCode {
 
     public static final int DELETE_KV_CONFIG = 102;
 
+    /**
+     * broker每30s发送一个此编码的心跳包
+     * broker注册命令编码
+     */
     public static final int REGISTER_BROKER = 103;
 
+    /**
+     * broker正常关闭，移除Broker心跳包
+     */
     public static final int UNREGISTER_BROKER = 104;
+
+    /**
+     * 当topic变化后，nameserver不主动推送给客户端，而是由客户端（Producer）定时拉取topic最新路由信息。
+     * 根据topic拉取路由信息的命令编码:GET_ROUTEINTO_BY_TOPIC
+     */
     public static final int GET_ROUTEINTO_BY_TOPIC = 105;
 
     public static final int GET_BROKER_CLUSTER_INFO = 106;

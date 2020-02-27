@@ -21,11 +21,35 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+
+import com.alibaba.fastjson.JSON;
 import org.apache.rocketmq.common.MixAll;
 
+/**
+ * 主从的brokerName是相同的，只是brokerId不同
+ *
+ * 同一个集群中的cluster是相同的，brokerName不同。
+ *
+ * 比如2主2从集群
+ *
+ * Master                       Slave
+ *
+ * cluster:c1                   cluster:c1
+ * brokerName:broker-a  --->    brokerName:broker-a
+ * brokerId:0                   brokerId:1
+ *
+ * cluster:c1                   cluster:c1
+ * brokerName:broker-b  --->    brokerName:broker-b
+ * brokerId:0                   brokerId:1
+ *
+ */
 public class BrokerData implements Comparable<BrokerData> {
+
     private String cluster;
     private String brokerName;
+    /**
+     * brokerId为0代表Master，大于0代表Slave。
+     */
     private HashMap<Long/* brokerId */, String/* broker address */> brokerAddrs;
 
     private final Random random = new Random();
@@ -120,5 +144,32 @@ public class BrokerData implements Comparable<BrokerData> {
 
     public void setBrokerName(String brokerName) {
         this.brokerName = brokerName;
+    }
+
+    public static void main(String[] args) {
+
+        BrokerData brokerData = new BrokerData();
+        brokerData.setBrokerName("broker-a");
+        brokerData.setCluster("c1");
+        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
+        brokerAddrs.put(0L, "192.168.0.110:10000");
+        brokerAddrs.put(1L, "192.168.0.111:10000");
+        brokerData.setBrokerAddrs(brokerAddrs);
+
+        BrokerData brokerData1 = new BrokerData();
+        brokerData1.setBrokerName("broker-b");
+        brokerData1.setCluster("c1");
+        HashMap<Long, String> brokerAddrs1 = new HashMap<Long, String>();
+        brokerAddrs1.put(0L, "192.168.0.112:10000");
+        brokerAddrs1.put(1L, "192.168.0.113:10000");
+        brokerData1.setBrokerAddrs(brokerAddrs1);
+
+
+        HashMap<String/* brokerName */, BrokerData> brokerAddrTable = new HashMap<String, BrokerData>();
+
+        brokerAddrTable.put("broker-a",brokerData);
+        brokerAddrTable.put("broker-b",brokerData1);
+        System.out.println(JSON.toJSONString(brokerAddrTable));
+
     }
 }

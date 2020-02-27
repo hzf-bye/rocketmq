@@ -45,6 +45,14 @@ public class MQClientManager {
     }
 
     public MQClientInstance getAndCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
+        // clientId为客户端IP+instanceName+(unitName可选)
+        /*
+         * 如果在同一台服务器上部署两个应用程序，应用程序不是clientId相同，会造成混乱？
+         * 为了避免这个问题，如果instanceName为默认值DEFAULT的话，RocketMQ会自动将instanceName设置为进程ID，
+         * 这样避免了不同进程的相互影响，但同一个JVM中的不同消费者和不同生产者在启动时获取到的MQClientInstance实例都是同一个。
+         * 根据后面的介绍，MQClientInstance封装了RocketMQ网络处理API，消息生产者（Producer）、消息消费者（Consumer）与NameServer、Broker打交道的网络通道。
+         *
+         */
         String clientId = clientConfig.buildMQClientId();
         MQClientInstance instance = this.factoryTable.get(clientId);
         if (null == instance) {

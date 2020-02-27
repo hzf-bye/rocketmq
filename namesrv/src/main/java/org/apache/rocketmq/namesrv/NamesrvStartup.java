@@ -47,6 +47,10 @@ public class NamesrvStartup {
     private static Properties properties = null;
     private static CommandLine commandLine = null;
 
+    /**
+     * 在启动NameServer时可以先使用./mqnameserver -c configFile -p 打印当前加载的配置属性。
+     * @param args
+     */
     public static void main(String[] args) {
         main0(args);
     }
@@ -79,9 +83,13 @@ public class NamesrvStartup {
             return null;
         }
 
+        //创建NamesrvConfig（NameServer业务参数）
         final NamesrvConfig namesrvConfig = new NamesrvConfig();
+        //创建NettyServerConfig（NameServer网络参数）
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
+        // 参数来源
+        // 1. -c configFile 通过-c命令指定配置文件的路径
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
@@ -122,6 +130,7 @@ public class NamesrvStartup {
         MixAll.printObjectProperties(log, namesrvConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
 
+        //创建NamesrvController实例，NamesrvController为NameServer核心控制器。
         final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
 
         // remember all configs to prevent discard
@@ -136,12 +145,14 @@ public class NamesrvStartup {
             throw new IllegalArgumentException("NamesrvController is null");
         }
 
+        //初始化NamesrvController实例
         boolean initResult = controller.initialize();
         if (!initResult) {
             controller.shutdown();
             System.exit(-3);
         }
 
+        //注册JVM钩子函数并启动服务器，以便监听Broker、消息生产者的网络请求。
         Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, new Callable<Void>() {
             @Override
             public Void call() throws Exception {
