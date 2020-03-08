@@ -26,6 +26,10 @@ public class Message implements Serializable {
     private static final long serialVersionUID = 8445773977080406428L;
 
     private String topic;
+
+    /**
+     * 消息标记(RocketMQ对消息中的falg不做任何处理，供应用程序使用)
+     */
     private int flag;
     /**
      * 扩展属性主要包含以下

@@ -31,6 +31,11 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+/**
+ * RemotingCommand类包含了传输过程中所有数据的封装，还包括了编解码等操作。
+ *
+ * 从面向对象角度，谁拥有数据谁就对外提供操作这些数据的方法。这样的设计非常棒
+ */
 public class RemotingCommand {
     public static final String SERIALIZE_TYPE_PROPERTY = "rocketmq.serialize.type";
     public static final String SERIALIZE_TYPE_ENV = "ROCKETMQ_SERIALIZE_TYPE";
@@ -40,9 +45,22 @@ public class RemotingCommand {
     private static final int RPC_ONEWAY = 1; // 0, RPC
     private static final Map<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
         new HashMap<Class<? extends CommandCustomHeader>, Field[]>();
+    /**
+     * 缓存Class类型的名称
+     * 如String.class.getCanonicalName()返回java.lang.String
+     * e.q.
+     * key:String.class
+     * value:java.lang.String
+     */
     private static final Map<Class, String> CANONICAL_NAME_CACHE = new HashMap<Class, String>();
     // 1, Oneway
     // 1, RESPONSE_COMMAND
+    /**
+     * 缓存继承自{@link CommandCustomHeader}的类中的属性书否可以为空
+     * 被{@link CFNotNull}注解修饰的属性则不能为空
+     *
+     * value:true-标识可空，即改属性没有被{@link CFNotNull}注解修饰，false-反之
+     */
     private static final Map<Field, Boolean> NULLABLE_FIELD_CACHE = new HashMap<Field, Boolean>();
     private static final String STRING_CANONICAL_NAME = String.class.getCanonicalName();
     private static final String DOUBLE_CANONICAL_NAME_1 = Double.class.getCanonicalName();
@@ -69,17 +87,44 @@ public class RemotingCommand {
         }
     }
 
+    /**
+     * 请求命令编码
+     * @see org.apache.rocketmq.common.protocol.RequestCode
+     */
     private int code;
     private LanguageCode language = LanguageCode.JAVA;
+    /**
+     * 版本号
+     */
     private int version = 0;
+    /**
+     * 客户端请求序号
+     */
     private int opaque = requestId.getAndIncrement();
+    /**
+     * 标记。
+     * 倒数第一位表示请求类型，0：请求；1：返回。
+     * 倒数第二位，1：oneway
+     */
     private int flag = 0;
+    /**
+     * 描述
+     */
     private String remark;
+    /**
+     * 扩展属性
+     */
     private HashMap<String, String> extFields;
+    /**
+     * 每个请求或者响应对应的信息
+     */
     private transient CommandCustomHeader customHeader;
 
     private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
 
+    /**
+     * 消息内容
+     */
     private transient byte[] body;
 
     protected RemotingCommand() {
@@ -97,6 +142,7 @@ public class RemotingCommand {
         if (configVersion >= 0) {
             cmd.setVersion(configVersion);
         } else {
+            //获取当前MQ版本，Broker、NameServer、Client启动时都会设置此值到系统属性中
             String v = System.getProperty(REMOTING_VERSION_KEY);
             if (v != null) {
                 int value = Integer.parseInt(v);
@@ -231,6 +277,9 @@ public class RemotingCommand {
         this.customHeader = customHeader;
     }
 
+    /**
+     * 从{@link RemotingCommand#extFields}解码出具体的CommandCustomHeader子类对象
+     */
     public CommandCustomHeader decodeCommandCustomHeader(
         Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
@@ -244,12 +293,15 @@ public class RemotingCommand {
 
         if (this.extFields != null) {
 
+            //从缓存中获取classHeader类的所有属性，如果没有则通过反射获取，再缓存。
             Field[] fields = getClazzFields(classHeader);
             for (Field field : fields) {
+                //不是静态属性
                 if (!Modifier.isStatic(field.getModifiers())) {
                     String fieldName = field.getName();
                     if (!fieldName.startsWith("this")) {
                         try {
+                            //通过属性名名获取值
                             String value = this.extFields.get(fieldName);
                             if (null == value) {
                                 if (!isFieldNullable(field)) {
@@ -261,7 +313,7 @@ public class RemotingCommand {
                             field.setAccessible(true);
                             String type = getCanonicalName(field.getType());
                             Object valueParsed;
-
+                            //将获取到的值转化为对应的类型
                             if (type.equals(STRING_CANONICAL_NAME)) {
                                 valueParsed = value;
                             } else if (type.equals(INTEGER_CANONICAL_NAME_1) || type.equals(INTEGER_CANONICAL_NAME_2)) {
@@ -317,6 +369,7 @@ public class RemotingCommand {
         String name = CANONICAL_NAME_CACHE.get(clazz);
 
         if (name == null) {
+            //返回class名，如String.class.getCanonicalName()返回java.lang.String
             name = clazz.getCanonicalName();
             synchronized (CANONICAL_NAME_CACHE) {
                 CANONICAL_NAME_CACHE.put(clazz, name);

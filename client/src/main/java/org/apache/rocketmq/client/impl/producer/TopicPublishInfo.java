@@ -24,10 +24,32 @@ import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 
 public class TopicPublishInfo {
+    /**
+     * 是否是顺序消息
+     */
     private boolean orderTopic = false;
+
+    /**
+     * 是否找到主题的路由信息
+     * 即为true时 messageQueueList与topicRouteData不为空
+     */
     private boolean haveTopicRouterInfo = false;
+    /**
+     * 该主题队列的消息队列
+     *
+     * 例如topicA在broker-a与broker-b上分别创建了4个队列
+     * [{"brokerName":"broker-a","queueId":0,"topic":"topicA"},{"brokerName":"broker-a","queueId":1,"topic":"topicA"},{"brokerName":"broker-a","queueId":2,"topic":"topicA"},{"brokerName":"broker-a","queueId":3,"topic":"topicA"},{"brokerName":"broker-b","queueId":0,"topic":"topicA"},{"brokerName":"broker-b","queueId":1,"topic":"topicA"},{"brokerName":"broker-b","queueId":2,"topic":"topicA"},{"brokerName":"broker-b","queueId":3,"topic":"topicA"}]
+     *
+     */
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+    /**
+     * 没选择一次消息队列，该值会自增1，如果大于Integer.MAX_VALUE则重置为0，用于选择消息队列。
+     * 负责均衡策略的索引
+     */
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
+    /**
+     * topic路由信息
+     */
     private TopicRouteData topicRouteData;
 
     public boolean isOrderTopic() {
@@ -66,20 +88,32 @@ public class TopicPublishInfo {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
 
+
+    /**
+     * 该消息在某一次消息的发送后面的重试逻辑中，能规避故障的Broker,
+     * 但是如果Broker宕机，由于messageQueueList是按照Broker排序的，
+     * 如果上一次选择是宕机的Broker的第一个队列，那么随后选择的可能就是宕机的Broker的第二个队列那么还是会发送失败，
+     * 再次引发重试才能规避此Broker，带来不必要的性能损耗。
+     */
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
             return selectOneMessageQueue();
         } else {
+            //通过sendWhichQueue获取自增至
             int index = this.sendWhichQueue.getAndIncrement();
             for (int i = 0; i < this.messageQueueList.size(); i++) {
+                //与当前路由表中消息队列个数取模，作为数组下标
                 int pos = Math.abs(index++) % this.messageQueueList.size();
+                //下标越界则取0
                 if (pos < 0)
                     pos = 0;
                 MessageQueue mq = this.messageQueueList.get(pos);
+                //为了规避上次选中的MessageQueue所在的Broker。否则还是可能再次失败。
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
                 }
             }
+            //如果上面没有找到则随机选择一个
             return selectOneMessageQueue();
         }
     }

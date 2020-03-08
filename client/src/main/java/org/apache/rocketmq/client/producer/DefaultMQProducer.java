@@ -63,7 +63,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     protected final transient DefaultMQProducerImpl defaultMQProducerImpl;
 
     /**
-     * 生产者所属组，消息服务器在回查事务状态时会随机选择该组中任何一个生产者发起事务回查请求。
+     * 生产者所属组，
+     * 对于非事务型的Producer，producer group仅起到标识作用并没有实际作用。
+     * 消息服务器在回查事务状态时会随机选择该组中任何一个生产者发起事务回查请求。
      * Producer group conceptually aggregates all producer instances of exactly same role, which is particularly
      * important when transactional messages are involved.
      * </p>
@@ -78,17 +80,36 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Just for testing or demo program
      * 默认topicKey
+     * 发送消息的时候，如果没有找到topic，若想自动创建该topic，需要一个key topic，这个值即是key topic的值
+     * 这是RocketMQ设计非常晦涩的一个概念，整体的逻辑是这样的：
+     *
+     * 生产者正常的发送消息，都是需要topic预先创建好的
+     * 但是RocketMQ服务端是支持，发送消息的时候，如果topic不存在，在发送的同时自动创建该topic
+     * 支持的前提是broker 的配置打开autoCreateTopicEnable=true
+     * autoCreateTopicEnable=true后，broker会创建一个AUTO_CREATE_TOPIC_KEY的topic，这个就是我们讲的默认的key topic
+     * 自动构建topic（以下简称T）的过程：
+     *
+     * 1.Producer发送的时候如果发现该T不存在，就会向配置有Producer配置的key topic的那个broker发送消息
+     * 2.broker校验客户端的topic key是否在broker存在，且校验其权限最后一位是否是1（topic权限总共有3位，按位存储，分别是读、写、支持自动创建）
+     * 3.若权限校验通过，先在该broker把T创建，并且权限就是key topic除去最后一位的权限。
+     *
+     * 源码见
+     * {@link org.apache.rocketmq.broker.topic.TopicConfigManager#createTopicInSendMessageMethod(java.lang.String, java.lang.String, java.lang.String, int, int)}
      */
     private String createTopicKey = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
 
     /**
      * Number of queues to create per default topic.
+     * 自动创建topic的话，默认queue数量是多少
      */
     private volatile int defaultTopicQueueNums = 4;
 
     /**
      * Timeout for sending messages.
      * 发送消息默认超时时间，默认3s
+     * 若发送的时候不显示指定timeout，则使用此设置的值作为超时时间。
+     *
+     * 对于异步发送，超时后会进入回调的onException，对于同步发送，超时则会得到一个RemotingTimeoutException。
      */
     private int sendMsgTimeout = 3000;
 
@@ -117,13 +138,14 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private int retryTimesWhenSendAsyncFailed = 2;
 
     /**
-     * 消息重试选择另外一个broker时，是否不等待消息存储结果就返回，默认为false。
+     * 同步模式下发送的结果如果不是SEND_OK状态，是否当作失败处理而尝试重发
      * Indicate whether to retry another broker on sending failure internally.
      */
     private boolean retryAnotherBrokerWhenNotStoreOK = false;
 
     /**
      * 允许消息体最大消息长度，默认为4M，该值最大值为2^32-1
+     * 若消息体大小超过此，会得到一个响应码13（MESSAGE_ILLEGAL）的MQClientException异常
      * Maximum allowed message size in bytes.
      */
     private int maxMessageSize = 1024 * 1024 * 4; // 4M
@@ -637,6 +659,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     @Override
     public SendResult send(
         Collection<Message> msgs) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        //调用batch方法将消息封装成MessageBatch
         return this.defaultMQProducerImpl.send(batch(msgs));
     }
 
@@ -671,11 +694,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private MessageBatch batch(Collection<Message> msgs) throws MQClientException {
         MessageBatch msgBatch;
         try {
+            //将消息集合转化成MessageBatch
             msgBatch = MessageBatch.generateFromList(msgs);
             for (Message message : msgBatch) {
                 Validators.checkMessage(message, this);
                 MessageClientIDSetter.setUniqID(message);
             }
+            //将所有消息编码，这样批量消息与单个消息发送逻辑一致。
             msgBatch.setBody(msgBatch.encode());
         } catch (Exception e) {
             throw new MQClientException("Failed to initiate the MessageBatch", e);

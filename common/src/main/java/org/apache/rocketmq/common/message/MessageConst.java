@@ -42,6 +42,10 @@ public class MessageConst {
     public static final String PROPERTY_RETRY_TOPIC = "RETRY_TOPIC";
     public static final String PROPERTY_REAL_TOPIC = "REAL_TOPIC";
     public static final String PROPERTY_REAL_QUEUE_ID = "REAL_QID";
+    /**
+     *  message.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+     *  如果得到true(忽略大小写，那么代表事务PREPARED消息)
+     */
     public static final String PROPERTY_TRANSACTION_PREPARED = "TRAN_MSG";
     public static final String PROPERTY_PRODUCER_GROUP = "PGROUP";
     public static final String PROPERTY_MIN_OFFSET = "MIN_OFFSET";
@@ -51,10 +55,20 @@ public class MessageConst {
     public static final String PROPERTY_TRANSFER_FLAG = "TRANSFER_FLAG";
     public static final String PROPERTY_CORRECTION_FLAG = "CORRECTION_FLAG";
     public static final String PROPERTY_MQ2_FLAG = "MQ2_FLAG";
+    /**
+     * 消息重新消费次数
+     */
     public static final String PROPERTY_RECONSUME_TIME = "RECONSUME_TIME";
     public static final String PROPERTY_MSG_REGION = "MSG_REGION";
     public static final String PROPERTY_TRACE_SWITCH = "TRACE_ON";
+    /**
+     * 消息唯一Id的key
+     * {@link MessageClientIDSetter#setUniqID(org.apache.rocketmq.common.message.Message)}
+     */
     public static final String PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX = "UNIQ_KEY";
+    /**
+     * 消息最大重新消费次数
+     */
     public static final String PROPERTY_MAX_RECONSUME_TIMES = "MAX_RECONSUME_TIMES";
     public static final String PROPERTY_CONSUME_START_TIMESTAMP = "CONSUME_START_TIME";
     public static final String PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET = "TRAN_PREPARED_QUEUE_OFFSET";

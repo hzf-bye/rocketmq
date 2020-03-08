@@ -19,6 +19,9 @@ package org.apache.rocketmq.common.message;
 
 import java.util.Map;
 
+/**
+ * 设置或者获取Message中的扩展属性
+ */
 public class MessageAccessor {
 
     public static void clearProperty(final Message msg, final String name) {

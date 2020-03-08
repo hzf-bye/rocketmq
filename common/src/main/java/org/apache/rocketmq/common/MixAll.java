@@ -119,6 +119,12 @@ public class MixAll {
         return DLQ_GROUP_TOPIC_PREFIX + consumerGroup;
     }
 
+    /**
+     /**
+     * 是否启用vip netty通道以发送消息
+     * broker的netty server会起两个通信服务。两个服务除了服务的端口号不一样，其他都一样。
+     * 其中一个的端口（配置端口-2）作为vip通道，客户端可以启用本设置项把发送消息此vip通道。
+     */
     public static String brokerVIPChannel(final boolean isChange, final String brokerAddr) {
         if (isChange) {
             String[] ipAndPort = brokerAddr.split(":");

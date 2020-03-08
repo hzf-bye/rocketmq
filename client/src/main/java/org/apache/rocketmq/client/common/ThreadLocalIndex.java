@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.client.common;
 
+import java.util.Objects;
 import java.util.Random;
 
 public class ThreadLocalIndex {
@@ -26,6 +27,8 @@ public class ThreadLocalIndex {
     public int getAndIncrement() {
         Integer index = this.threadLocalIndex.get();
         if (null == index) {
+            //如果此时index为-2147483648，int的最小值，那么取绝对值还是-2147483648那么就小于0，就重置为0
+            //下同
             index = Math.abs(random.nextInt());
             if (index < 0)
                 index = 0;
@@ -46,4 +49,5 @@ public class ThreadLocalIndex {
             "threadLocalIndex=" + threadLocalIndex.get() +
             '}';
     }
+
 }

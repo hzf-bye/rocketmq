@@ -16,7 +16,11 @@
  */
 package org.apache.rocketmq.common.message;
 
+import com.alibaba.fastjson.JSON;
+
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MessageQueue implements Comparable<MessageQueue>, Serializable {
     private static final long serialVersionUID = 6191200464116433425L;
@@ -114,5 +118,21 @@ public class MessageQueue implements Comparable<MessageQueue>, Serializable {
         }
 
         return this.queueId - o.queueId;
+    }
+
+    public static void main(String[] args) {
+
+        List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+        for (int i=0; i<4; i++) {
+
+            MessageQueue messageQueue = new MessageQueue("topicA", "broker-a", i);
+            messageQueueList.add(messageQueue);
+        }
+        for (int i=0; i<4; i++) {
+
+            MessageQueue messageQueue = new MessageQueue("topicA", "broker-b", i);
+            messageQueueList.add(messageQueue);
+        }
+        System.out.println(JSON.toJSONString(messageQueueList));
     }
 }

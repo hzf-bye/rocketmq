@@ -23,12 +23,31 @@ package org.apache.rocketmq.common.protocol.route;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TopicRouteData extends RemotingSerializable {
+
+    /**
+     * 顺序消息配置信息，来自于 kvConfig
+     * 格式如下
+     * brokerName1:queueNum1;brokerName2:queueNum2
+     * 不为空表示顺序消息
+     */
     private String orderTopicConf;
+    /**
+     * topic队列元数据
+     */
     private List<QueueData> queueDatas;
+    /**
+     * topic分布的broker元数据
+     */
     private List<BrokerData> brokerDatas;
+    /**
+     * broker上过滤服务器地址列表
+     */
     private HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public TopicRouteData cloneTopicRouteData() {

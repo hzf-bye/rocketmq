@@ -311,6 +311,9 @@ public class MQClientAPIImpl {
         long beginStartTime = System.currentTimeMillis();
         RemotingCommand request = null;
         if (sendSmartMsg || msg instanceof MessageBatch) {
+            // 默认为true。
+            //转化为SendMessageRequestHeaderV2 ,SendMessageRequestHeaderV2中属性用a,b,cd...代替
+            //应该也是为了减少网络间的数据传输吧？
             SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
             request = RemotingCommand.createRequestCommand(msg instanceof MessageBatch ? RequestCode.SEND_BATCH_MESSAGE : RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
         } else {
@@ -337,6 +340,7 @@ public class MQClientAPIImpl {
                 if (timeoutMillis < costTimeSync) {
                     throw new RemotingTooMuchRequestException("sendMessage call timeout");
                 }
+                //同步发送消息
                 return this.sendMessageSync(addr, brokerName, msg, timeoutMillis - costTimeSync, request);
             default:
                 assert false;
@@ -519,9 +523,10 @@ public class MQClientAPIImpl {
                         break;
                 }
 
+                //解码消息
                 SendMessageResponseHeader responseHeader =
                     (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
-
+                //下面都是为了构造出SendResult
                 MessageQueue messageQueue = new MessageQueue(msg.getTopic(), brokerName, responseHeader.getQueueId());
 
                 String uniqMsgId = MessageClientIDSetter.getUniqID(msg);

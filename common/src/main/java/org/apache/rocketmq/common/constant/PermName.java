@@ -20,6 +20,15 @@ public class PermName {
     public static final int PERM_PRIORITY = 0x1 << 3;
     public static final int PERM_READ = 0x1 << 2;
     public static final int PERM_WRITE = 0x1 << 1;
+
+    /**
+     * 自我理解
+     * 如果某topic拥有此权限，那么他的{@link org.apache.rocketmq.common.TopicConfig}中的属性是可以被继承的
+     * 如{org.apache.rocketmq.broker.topic.TopicConfigManager#createTopicInSendMessageMethod(java.lang.String, java.lang.String, java.lang.String, int, int)}
+     * 方法中如果当前发送消息的topic在缓存中没有，则没有预先创建好此topic，那么将创建此topic对应的{@link org.apache.rocketmq.common.TopicConfig}。
+     * 且此tipoc的默认topic key是{@link org.apache.rocketmq.common.MixAll#AUTO_CREATE_TOPIC_KEY_TOPIC}
+     * 且其中的值可继承自AUTO_CREATE_TOPIC_KEY_TOPIC对应的TopicConfig
+     */
     public static final int PERM_INHERIT = 0x1 << 0;
 
     public static String perm2String(final int perm) {

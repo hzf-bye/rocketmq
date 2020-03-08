@@ -45,6 +45,12 @@ public class ClientConfig {
     private int persistConsumerOffsetInterval = 1000 * 5;
     private boolean unitMode = false;
     private String unitName;
+
+    /**
+     * 是否启用vip netty通道以发送消息
+     * broker的netty server会起两个通信服务。两个服务除了服务的端口号不一样，其他都一样。
+     * 其中一个的端口（配置端口-2）作为vip通道，客户端可以启用本设置项把发送消息此vip通道。
+     */
     private boolean vipChannelEnabled = Boolean.parseBoolean(System.getProperty(SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY, "true"));
 
     private boolean useTLS = TlsSystemConfig.tlsEnable;

@@ -20,36 +20,78 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class SendMessageRequestHeader implements CommandCustomHeader {
+
+    /**
+     * 生产者组
+     */
     @CFNotNull
     private String producerGroup;
+    /**
+     * 主题名称
+     */
     @CFNotNull
     private String topic;
+    /**
+     * 默认创建主题key
+     */
     @CFNotNull
     private String defaultTopic;
+    /**
+     * 该主体在单个Broker默认队列数
+     */
     @CFNotNull
     private Integer defaultTopicQueueNums;
+    /**
+     * 队列id（队列序列号）
+     */
     @CFNotNull
     private Integer queueId;
+    /**
+     * 消息系统标记
+     * {@link MessageSysFlag}
+     */
     @CFNotNull
     private Integer sysFlag;
+    /**
+     * 消息发送时间
+     */
     @CFNotNull
     private Long bornTimestamp;
+    /**
+     * 消息标记(RocketMQ对消息中的falg不做任何处理，供应用程序使用)
+     */
     @CFNotNull
     private Integer flag;
+    /**
+     * 消息扩展属性
+     */
     @CFNullable
     private String properties;
+    /**
+     * 重新消费次数
+     */
     @CFNullable
     private Integer reconsumeTimes;
+    /**
+     * 是否为单元化模式。
+     */
     @CFNullable
     private boolean unitMode = false;
     @CFNullable
+    /**
+     * 是否是批量消息
+     */
     private boolean batch = false;
+    /**
+     * 最大重新消费次数
+     */
     private Integer maxReconsumeTimes;
 
     @Override

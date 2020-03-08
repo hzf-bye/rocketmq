@@ -28,6 +28,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -150,21 +151,36 @@ public class TopicConfigManager extends ConfigManager {
         try {
             if (this.lockTopicConfigTable.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
+                    //先从缓存中获取
                     topicConfig = this.topicConfigTable.get(topic);
                     if (topicConfig != null)
                         return topicConfig;
 
+                    //
+                    //
+                    /**
+                     * 如果没有则通过默认topic key(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)获取
+                     * defaultTopicConfig在{@link TopicConfigManager#TopicConfigManager(org.apache.rocketmq.broker.BrokerController)}构造方法中创建
+                     */
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                     if (defaultTopicConfig != null) {
                         if (defaultTopic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
+                            //defaultTopicConfig在创建的时候被赋予的权限是 PermName.PERM_INHERIT | PermName.PERM_READ | PermName.PERM_WRITE;
+                            // 如果此时不允许自动创建topic，那么收回defaultTopicConfig的允许被继承权限。
                             if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
                                 defaultTopicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
                             }
                         }
 
+                        //如果默认topic拥有可继承的权限
+                        //那么当前topic对应的TopicConfig的值可取自defaultTopicConfig
                         if (PermName.isInherited(defaultTopicConfig.getPerm())) {
                             topicConfig = new TopicConfig(topic);
 
+                            /**
+                             * 获取最小的队列数
+                             * clientDefaultTopicQueueNums来自{@link DefaultMQProducer#defaultTopicQueueNums}
+                             */
                             int queueNums =
                                 clientDefaultTopicQueueNums > defaultTopicConfig.getWriteQueueNums() ? defaultTopicConfig
                                     .getWriteQueueNums() : clientDefaultTopicQueueNums;
@@ -175,6 +191,7 @@ public class TopicConfigManager extends ConfigManager {
 
                             topicConfig.setReadQueueNums(queueNums);
                             topicConfig.setWriteQueueNums(queueNums);
+                            //权限取自defaultTopicConfig，但是去掉PERM_INHERIT权限
                             int perm = defaultTopicConfig.getPerm();
                             perm &= ~PermName.PERM_INHERIT;
                             topicConfig.setPerm(perm);
@@ -193,6 +210,7 @@ public class TopicConfigManager extends ConfigManager {
                         log.info("Create new topic by default topic:[{}] config:[{}] producer:[{}]",
                             defaultTopic, topicConfig, remoteAddress);
 
+                        //缓存topicConfig
                         this.topicConfigTable.put(topic, topicConfig);
 
                         this.dataVersion.nextVersion();

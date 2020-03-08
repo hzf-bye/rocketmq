@@ -161,6 +161,8 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+        //检查Broker是否有写权限
+        //没有写权限且是顺序消息则返回错误信息？目前不理解
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -168,6 +170,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 + "] sending message is forbidden");
             return response;
         }
+        //检查该topic是否可以发送消息。主要针对默认主体topic，此topic不能发送消息，仅仅供路由查找
         if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
             String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
             log.warn(errorMsg);
@@ -176,11 +179,13 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             return response;
         }
 
+        //从缓存中获取topicConfig
         TopicConfig topicConfig =
             this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         if (null == topicConfig) {
             int topicSysFlag = 0;
             if (requestHeader.isUnitMode()) {
+                //消费失败重试的%RETRY%开头的topic则设置为FLAG_UNIT_SUB，非%RETRY%开头的设置为FLAG_UNIT
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
                 } else {
@@ -188,6 +193,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 }
             }
 
+            //如果缓存中没有topicConfig，则创建
             log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(
                 requestHeader.getTopic(),
@@ -195,7 +201,12 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                 requestHeader.getDefaultTopicQueueNums(), topicSysFlag);
 
+            /**
+             * 到这里还为空，说明发消息前没有实现创建topic，且不允许自动创建topic
+             * {@link org.apache.rocketmq.common.BrokerConfig#autoCreateTopicEnable} 为false
+             */
             if (null == topicConfig) {
+                //如果topic是%RETRY%开头，那么也创建topicConfig
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     topicConfig =
                         this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(
@@ -204,6 +215,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 }
             }
 
+            //如果还为空，上述条件都不满足，返回错误码
             if (null == topicConfig) {
                 response.setCode(ResponseCode.TOPIC_NOT_EXIST);
                 response.setRemark("topic[" + requestHeader.getTopic() + "] not exist, apply first please!"
@@ -212,6 +224,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
             }
         }
 
+        //检查队列，如果队列不合法，返回错误码
         int queueIdInt = requestHeader.getQueueId();
         int idValid = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
         if (queueIdInt >= idValid) {
@@ -280,19 +293,23 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         SendMessageRequestHeaderV2 requestHeaderV2 = null;
         SendMessageRequestHeader requestHeader = null;
         switch (request.getCode()) {
+            //处理Producer发送的不同消息体的消息
             case RequestCode.SEND_BATCH_MESSAGE:
             case RequestCode.SEND_MESSAGE_V2:
                 requestHeaderV2 =
                     (SendMessageRequestHeaderV2) request
                         .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
             case RequestCode.SEND_MESSAGE:
+                //接收到Producer发送的消息
                 if (null == requestHeaderV2) {
                     requestHeader =
                         (SendMessageRequestHeader) request
                             .decodeCommandCustomHeader(SendMessageRequestHeader.class);
                 } else {
+                    //将SendMessageRequestHeaderV2转化为SendMessageRequestHeader
                     requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
                 }
+                break;
             default:
                 break;
         }

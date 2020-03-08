@@ -380,6 +380,10 @@ public class MessageDecoder {
         return msgExts;
     }
 
+    /**
+     * 消息扩展属性转换格式
+     * TAGS1tagName2DELAY1delayValue2
+     */
     public static String messageProperties2String(Map<String, String> properties) {
         StringBuilder sb = new StringBuilder();
         if (properties != null) {
@@ -411,21 +415,26 @@ public class MessageDecoder {
         return map;
     }
 
+    /**
+     * 将一个Message按找以下规则编码
+     */
     public static byte[] encodeMessage(Message message) {
         //only need flag, body, properties
         byte[] body = message.getBody();
         int bodyLen = body.length;
+        //将消息体扩展属性转化为String。
         String properties = messageProperties2String(message.getProperties());
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
         //note properties length must not more than Short.MAX
         short propertiesLength = (short) propertiesBytes.length;
         int sysFlag = message.getFlag();
-        int storeSize = 4 // 1 TOTALSIZE
-            + 4 // 2 MAGICCOD
-            + 4 // 3 BODYCRC
-            + 4 // 4 FLAG
-            + 4 + bodyLen // 4 BODY
-            + 2 + propertiesLength;
+        int storeSize = 4 // 1 TOTALSIZE 总长度占四个字节
+            + 4 // 2 MAGICCOD 魔数占四个字节
+            + 4 // 3 BODYCRC body crc占四个字节
+            + 4 // 4 FLAG flag占4个字节
+            + 4 + bodyLen // 5 BODY body长度占四个字节   紧接着body内容
+            + 2 + propertiesLength; //6 扩展属性长度占两个字节  紧接着扩展属性
+        //最后 扩展属性n个字节
         ByteBuffer byteBuffer = ByteBuffer.allocate(storeSize);
         // 1 TOTALSIZE
         byteBuffer.putInt(storeSize);
@@ -451,6 +460,9 @@ public class MessageDecoder {
         return byteBuffer.array();
     }
 
+    /**
+     * 解码消息 根据上述编码规则解码
+     */
     public static Message decodeMessage(ByteBuffer byteBuffer) throws Exception {
         Message message = new Message();
 
@@ -487,12 +499,14 @@ public class MessageDecoder {
         List<byte[]> encodedMessages = new ArrayList<byte[]>(messages.size());
         int allSize = 0;
         for (Message message : messages) {
+            //将一个message编码
             byte[] tmp = encodeMessage(message);
             encodedMessages.add(tmp);
             allSize += tmp.length;
         }
         byte[] allBytes = new byte[allSize];
         int pos = 0;
+        //将所有编码好的消息合并成一个字节数组
         for (byte[] bytes : encodedMessages) {
             System.arraycopy(bytes, 0, allBytes, pos, bytes.length);
             pos += bytes.length;

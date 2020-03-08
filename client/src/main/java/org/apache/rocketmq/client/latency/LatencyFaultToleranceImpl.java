@@ -17,20 +17,22 @@
 
 package org.apache.rocketmq.client.latency;
 
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 
 public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> {
+
+    /**
+     * key:brokerName
+     */
     private final ConcurrentHashMap<String, FaultItem> faultItemTable = new ConcurrentHashMap<String, FaultItem>(16);
 
     private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
 
     @Override
     public void updateFaultItem(final String name, final long currentLatency, final long notAvailableDuration) {
+        //从缓存中找FaultItem，找到则更新，未找到则创建
         FaultItem old = this.faultItemTable.get(name);
         if (null == old) {
             final FaultItem faultItem = new FaultItem(name);
@@ -71,15 +73,19 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
             tmpList.add(faultItem);
         }
 
+        //随机选择一个BrokerName
         if (!tmpList.isEmpty()) {
+            //随机打乱原来的顺序
             Collections.shuffle(tmpList);
-
+            //排序 FaultItem重写了compareTo方法，broker可用的，消息发送延迟小的，故障规避开始时间小的会在前面
             Collections.sort(tmpList);
 
             final int half = tmpList.size() / 2;
             if (half <= 0) {
+                //如list大小为1 那么直接选第一个
                 return tmpList.get(0).getName();
             } else {
+                //那么从前半部分随机选一个
                 final int i = this.whichItemWorst.getAndIncrement() % half;
                 return tmpList.get(i).getName();
             }
@@ -97,8 +103,21 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     }
 
     class FaultItem implements Comparable<FaultItem> {
+
+        /**
+         * 条目唯一键，可为brokerName
+         */
         private final String name;
+        /**
+         * 本次消息发送延迟
+         */
         private volatile long currentLatency;
+        /**
+         * 故障规避开始时间
+         * 值为系统当前时间加上需要规避的时长。
+         * 是判断broker当前是否可用的直接依据。
+         * 具体查看isAvailable()方法
+         */
         private volatile long startTimestamp;
 
         public FaultItem(final String name) {
@@ -187,6 +206,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         public void setStartTimestamp(final long startTimestamp) {
             this.startTimestamp = startTimestamp;
         }
+
 
     }
 }
