@@ -16,24 +16,54 @@
  */
 package org.apache.rocketmq.store;
 
+import org.apache.rocketmq.common.message.MessageDecoder;
+
 /**
  * When write a message to the commit log, returns results
  */
 public class AppendMessageResult {
-    // Return code
+    /**
+     * Return code
+     * 消息追加结果
+     * @see AppendMessageStatus
+     */
     private AppendMessageStatus status;
-    // Where to start writing
+    /**
+     * Where to start writing
+     * 消息在commitlog中物理偏移量
+     */
     private long wroteOffset;
-    // Write Bytes
+    /**
+     * Write Bytes
+     * 消息长度，也就是消息字节数
+     */
     private int wroteBytes;
-    // Message ID
+    /**
+     * Message ID
+     * 消息ID
+     * @see MessageDecoder#createMessageId(java.nio.ByteBuffer, java.nio.ByteBuffer, long)
+     */
     private String msgId;
-    // Message storage timestamp
+    /**
+     * Message storage timestamp
+     * 消息存储时间戳
+     */
     private long storeTimestamp;
-    // Consume queue's offset(step by one)
+    /**
+     * Consume queue's offset(step by one)
+     * 消息消费队列ConsumeQueue）逻辑偏移量（，类似于数组下标
+     * @see org.apache.rocketmq.store.CommitLog#topicQueueTable
+     */
     private long logicsOffset;
+
+    /**
+     * 当前未使用
+     */
     private long pagecacheRT = 0;
 
+    /**
+     * 消息条数，批量发送消息时消息条数
+     */
     private int msgNum = 1;
 
     public AppendMessageResult(AppendMessageStatus status) {

@@ -59,6 +59,7 @@ public class BrokerFastFailure {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
+                //是否开启快速失败，默认true。
                 if (brokerController.getBrokerConfig().isBrokerFastFailureEnable()) {
                     cleanExpiredRequest();
                 }
@@ -67,9 +68,12 @@ public class BrokerFastFailure {
     }
 
     private void cleanExpiredRequest() {
+        //如果PageCache繁忙
         while (this.brokerController.getMessageStore().isOSPageCacheBusy()) {
             try {
+                //并且消息发送队列中还有任务
                 if (!this.brokerController.getSendThreadPoolQueue().isEmpty()) {
+                    //则直接不再等待，直接抛出系统繁忙错误，使正在排队的线程快速失败，结束等待
                     final Runnable runnable = this.brokerController.getSendThreadPoolQueue().poll(0, TimeUnit.SECONDS);
                     if (null == runnable) {
                         break;

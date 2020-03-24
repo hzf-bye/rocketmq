@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
 public class IndexService {
@@ -42,7 +43,16 @@ public class IndexService {
     private final DefaultMessageStore defaultMessageStore;
     private final int hashSlotNum;
     private final int indexNum;
+
+    /**
+     * indexFile文件存储目录
+     * {@link MessageStoreConfig#storePathRootDir}下的index目录
+     *
+     */
     private final String storePath;
+    /**
+     * 所有IndexFile列表
+     */
     private final ArrayList<IndexFile> indexFileList = new ArrayList<IndexFile>();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
@@ -54,17 +64,24 @@ public class IndexService {
             StorePathConfigHelper.getStorePathIndex(store.getMessageStoreConfig().getStorePathRootDir());
     }
 
+    /**
+     * 假造索引文件
+     * @param lastExitOK true-上次Broker正常退出
+     */
     public boolean load(final boolean lastExitOK) {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
         if (files != null) {
             // ascending order
+            //按文件名称排序
             Arrays.sort(files);
             for (File file : files) {
                 try {
+                    //创建IndexFile，并加载索引文件
                     IndexFile f = new IndexFile(file.getPath(), this.hashSlotNum, this.indexNum, 0, 0);
                     f.load();
 
+                    //如果上次异常退出，且索引文件上次刷盘时间小于改索引文件最大的消息存储时间该文件将立刻销毁。
                     if (!lastExitOK) {
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
                             .getIndexMsgTimestamp()) {
@@ -198,13 +215,19 @@ public class IndexService {
         return topic + "#" + key;
     }
 
+    /**
+     * 根据消息更新Index索引文件
+     */
     public void buildIndex(DispatchRequest req) {
+        //获取或者创建IndexFile文件
         IndexFile indexFile = retryGetAndCreateIndexFile();
         if (indexFile != null) {
+            //获取所有文件最大的物理偏移量
             long endPhyOffset = indexFile.getEndPhyOffset();
             DispatchRequest msg = req;
             String topic = msg.getTopic();
             String keys = msg.getKeys();
+            //如果消息物理偏移量小于索引文件最大物理偏移量说明是重复数据，忽略本次索引构建。
             if (msg.getCommitLogOffset() < endPhyOffset) {
                 return;
             }
@@ -219,6 +242,7 @@ public class IndexService {
                     return;
             }
 
+            //消息唯一键不为空，则添加到hash索引中
             if (req.getUniqKey() != null) {
                 indexFile = putKey(indexFile, msg, buildKey(topic, req.getUniqKey()));
                 if (indexFile == null) {
@@ -227,6 +251,7 @@ public class IndexService {
                 }
             }
 
+            //构建索引建，RocketMQ支持为同一个消息建立多个索引，多个索引键空格分开。
             if (keys != null && keys.length() > 0) {
                 String[] keyset = keys.split(MessageConst.KEY_SEPARATOR);
                 for (int i = 0; i < keyset.length; i++) {
@@ -269,6 +294,7 @@ public class IndexService {
         IndexFile indexFile = null;
 
         for (int times = 0; null == indexFile && times < MAX_TRY_IDX_CREATE; times++) {
+            //获取最后一个索引文件或者创建一个索引文件
             indexFile = this.getAndCreateLastIndexFile();
             if (null != indexFile)
                 break;
@@ -289,6 +315,11 @@ public class IndexService {
         return indexFile;
     }
 
+    /**
+     * 获取最后一个索引文件
+     * 如果不存在则创建
+     * 如果存在但是满了也创建
+     */
     public IndexFile getAndCreateLastIndexFile() {
         IndexFile indexFile = null;
         IndexFile prevIndexFile = null;
@@ -298,10 +329,13 @@ public class IndexService {
         {
             this.readWriteLock.readLock().lock();
             if (!this.indexFileList.isEmpty()) {
+                //不空获取最后一个文件
                 IndexFile tmp = this.indexFileList.get(this.indexFileList.size() - 1);
                 if (!tmp.isWriteFull()) {
+                    //如果不满，那么找到目标文件
                     indexFile = tmp;
                 } else {
+                    //获取本索引文件的最大消息偏移量以及存储时间
                     lastUpdateEndPhyOffset = tmp.getEndPhyOffset();
                     lastUpdateIndexTimestamp = tmp.getEndTimestamp();
                     prevIndexFile = tmp;
@@ -311,11 +345,13 @@ public class IndexService {
             this.readWriteLock.readLock().unlock();
         }
 
+        //如果此时没有索引文件或者最后一个索引文件满了，那么需要创建
         if (indexFile == null) {
             try {
                 String fileName =
                     this.storePath + File.separator
                         + UtilAll.timeMillisToHumanString(System.currentTimeMillis());
+                //新创建的索引文件中，消息最小物理偏移量以及消息最小存储时间为上一个文件的最大物理偏移量以及消息最大存储时间
                 indexFile =
                     new IndexFile(fileName, this.hashSlotNum, this.indexNum, lastUpdateEndPhyOffset,
                         lastUpdateIndexTimestamp);
@@ -328,6 +364,13 @@ public class IndexService {
             }
 
             if (indexFile != null) {
+                /*
+                 * 说明此时获取到了一个索引文件，分三种情况
+                 * 1.不存在索引文件是创建的第一个索引文件，此时prevIndexFile==null
+                 * 2.存在索引文件但是索引文件满了，创建一个新的索引文件 此时prevIndexFile!=null
+                 * 3.存在索引文件但是索引文件未满，获取的最后一个索引文件 此时prevIndexFile==null
+                 * 那么如果prevIndexFile不为空那么会将prevIndexFile中的数据刷盘。
+                 */
                 final IndexFile flushThisFile = prevIndexFile;
                 Thread flushThread = new Thread(new Runnable() {
                     @Override
@@ -344,6 +387,12 @@ public class IndexService {
         return indexFile;
     }
 
+    /**
+     * 索引文件刷盘
+     * 关于索引文件刷盘时间点：
+     * 只有在某个索引文件写满了的时候，又创建了一个新的索引文件，此时入参f才不为空，才会去刷盘，说明是将整个内存映射一起刷盘的。
+     * 因此可以看到在刷盘后并没有维护刷盘指针，就是因为整个文件一起刷盘了，没必要维护。
+     */
     public void flush(final IndexFile f) {
         if (null == f)
             return;
@@ -357,6 +406,7 @@ public class IndexService {
         f.flush();
 
         if (indexMsgTimestamp > 0) {
+            //更新索引文件最新一条消息的存储时间戳
             this.defaultMessageStore.getStoreCheckpoint().setIndexMsgTimestamp(indexMsgTimestamp);
             this.defaultMessageStore.getStoreCheckpoint().flush();
         }

@@ -32,7 +32,9 @@ public class MessageConst {
      */
     public static final String PROPERTY_TAGS = "TAGS";
     /**
-     * 消息发送时是否等消息存储完成后再返回
+     * 如果是同步刷盘的策略是否等消息存储完成后再返回结果
+     * @see org.apache.rocketmq.store.CommitLog#handleDiskFlush(org.apache.rocketmq.store.AppendMessageResult, org.apache.rocketmq.store.PutMessageResult, org.apache.rocketmq.common.message.MessageExt)
+     *
      */
     public static final String PROPERTY_WAIT_STORE_MSG_OK = "WAIT";
     /**
@@ -40,7 +42,17 @@ public class MessageConst {
      */
     public static final String PROPERTY_DELAY_TIME_LEVEL = "DELAY";
     public static final String PROPERTY_RETRY_TOPIC = "RETRY_TOPIC";
+
+    /**
+     * 当时延迟消息时需要将消息的真实topic存储到消息的扩展属性中，
+     * PROPERTY_REAL_TOPIC为对应的key
+     * {@link org.apache.rocketmq.store.CommitLog#putMessage(org.apache.rocketmq.store.MessageExtBrokerInner)}
+     */
     public static final String PROPERTY_REAL_TOPIC = "REAL_TOPIC";
+    /**
+     * 当时延迟消息时需要将消息的真实队列ID存储到消息的扩展属性中，
+     * PROPERTY_REAL_QUEUE_ID为对应的key
+     */
     public static final String PROPERTY_REAL_QUEUE_ID = "REAL_QID";
     /**
      *  message.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);

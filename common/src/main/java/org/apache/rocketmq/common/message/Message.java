@@ -40,6 +40,10 @@ public class Message implements Serializable {
      *
      */
     private Map<String, String> properties;
+
+    /**
+     * 消息体内容
+     */
     private byte[] body;
     private String transactionId;
 

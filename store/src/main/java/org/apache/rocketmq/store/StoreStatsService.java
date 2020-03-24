@@ -43,8 +43,16 @@ public class StoreStatsService extends ServiceThread {
 
     private final AtomicLong putMessageFailedTimes = new AtomicLong(0);
 
+    /**
+     * key:topic
+     * value:消息存储到commitlog文件的次数（存储批量消息算作一次）
+     */
     private final ConcurrentMap<String, AtomicLong> putMessageTopicTimesTotal =
         new ConcurrentHashMap<String, AtomicLong>(128);
+    /**
+     * key:topic
+     * value:消息存储到commitlog文件的总的消息的大小
+     */
     private final ConcurrentMap<String, AtomicLong> putMessageTopicSizeTotal =
         new ConcurrentHashMap<String, AtomicLong>(128);
 

@@ -18,21 +18,38 @@ package org.apache.rocketmq.store.config;
 
 import java.io.File;
 import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.ConsumeQueue;
 
+/**
+ *可以在启动Broker时通过-c 命令指定配置文件命令，然后会通过反射赋值含有set方法的属性
+ * @see org.apache.rocketmq.broker.BrokerStartup#createBrokerController(java.lang.String[])
+ */
 public class MessageStoreConfig {
     //The root directory in which the log data is kept
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
+    /**
+     * commitlog文件默认存储目录
+     */
     //The directory in which the commitlog is kept
     @ImportantField
     private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "commitlog";
 
     // CommitLog file size,default is 1G
+    /**
+     * 一个CommitLog文件默认大小
+     */
     private int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
+//    private int mapedFileSizeCommitLog = 20 * 1024 * 1024;
     // ConsumeQueue file size,default is 30W
+    /**
+     * 一个ConsumeQueue文件默认大小
+     */
     private int mapedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
     private boolean enableConsumeQueueExt = false;
@@ -85,6 +102,10 @@ public class MessageStoreConfig {
     // Whether check the CRC32 of the records consumed.
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
     // This check adds some overhead,so it may be disabled in cases seeking extreme performance.
+    /**
+     * 是否检查消耗的记录的CRC32，这样可确保不会对消息进行任何在线或磁盘损坏。此检查会增加一些开销，因此在寻求极端性能的情况下可能会被禁用。
+     * 在进行文件恢复查找消息时是否验证CRC
+     */
     private boolean checkCRCOnRecover = true;
     // How many pages are to be flushed when flush CommitLog
     private int flushCommitLogLeastPages = 4;
@@ -107,9 +128,19 @@ public class MessageStoreConfig {
     private int maxTransferCountOnMessageInDisk = 8;
     @ImportantField
     private int accessMessageInMemoryMaxRatio = 40;
+
+    /**
+     * 是否创建消息索引文件，默认true
+     */
     @ImportantField
     private boolean messageIndexEnable = true;
+    /**
+     * 索引文件中默认最大hash槽
+     */
     private int maxHashSlotNum = 5000000;
+    /**
+     * 索引文件中默认最大索引条目数量
+     */
     private int maxIndexNum = 5000000 * 4;
     private int maxMsgsNumBatch = 64;
     @ImportantField
@@ -123,9 +154,24 @@ public class MessageStoreConfig {
     private int haSlaveFallbehindMax = 1024 * 1024 * 256;
     @ImportantField
     private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
+
+    /**
+     * 消息刷盘策略
+     * 同步or异步
+     */
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
+
+    /**
+     * 同步刷盘时的超时时间
+     */
     private int syncFlushTimeout = 1000 * 5;
+    /**
+     * 消息延迟发送
+     * {@link Message#properties}中key{@link  MessageConst#PROPERTY_DELAY_TIME_LEVEL}对应的值为3
+     * 那么代表延迟10s发送消息。
+     *
+     */
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private long flushDelayOffsetInterval = 1000 * 10;
     @ImportantField
@@ -133,11 +179,26 @@ public class MessageStoreConfig {
     private boolean warmMapedFileEnable = false;
     private boolean offsetCheckInSlave = false;
     private boolean debugLockEnable = false;
+    /**
+     * 索引允许重复构建，通过配置项duplicationEnable指定。系统启动的时候，如果允许重复索引会重头构建，不然就从当前文件大小开始。
+     */
     private boolean duplicationEnable = false;
     private boolean diskFallRecorded = true;
+
+    /**
+     * PageCache系统超时的时间，默认为1000，表示1s
+     * 即某次消息写入允许的最大时间
+     * {@link CommitLog#beginTimeInLock}
+     */
     private long osPageCacheBusyTimeOutMills = 1000;
     private int defaultQueryMaxNum = 32;
 
+    /**
+     * Java NIO的内存映射机制，提供了将文件系统中的文件映射到内存机制，实现对文件的操作转换对内存地址的操作，
+     * 极大的提高了IO特性，但这部分内存并不是常驻内存，可以被置换到交换内存(虚拟内存)，
+     * RocketMQ为了提高消息发送的性能，引入了内存锁定机制，即将最近需要操作的commitlog文件映射到内存，并提供内存锁定功能，
+     * 确保这些文件始终存在内存中，该机制的控制参数就是transientStorePoolEnable。
+     */
     @ImportantField
     private boolean transientStorePoolEnable = false;
     private int transientStorePoolSize = 5;

@@ -16,23 +16,17 @@
  */
 package org.apache.rocketmq.common;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.nio.ByteBuffer;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
@@ -208,6 +202,10 @@ public class UtilAll {
         return -1;
     }
 
+    /**
+     * 循环冗余校验CRC(Cyclic Redundancy Check/Code)是对一个传送数据块进行校验，是一种高效的差错控制方法。
+     * 将字节数组生成一个唯一的数值，以保证数据传输的正确性和完整性。
+     */
     public static int crc32(byte[] array) {
         if (array != null) {
             return crc32(array, 0, array.length);
@@ -245,6 +243,21 @@ public class UtilAll {
             d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
         }
         return d;
+    }
+
+    public static void main(String[] args) {
+
+        byte[] bytes = string2bytes("C0A8006B00002A9F0000000000000CA3");
+        ByteBuffer byteBuffer = ByteBuffer.allocate(16);
+        byteBuffer.put(bytes);
+        byteBuffer.flip();
+        byte[] address = new byte[4];
+        byteBuffer.get(address);
+        //输出本地主机的原始IP地址
+        System.out.println(Arrays.toString(address));
+        System.out.println(byteBuffer.getInt());
+        System.out.println(byteBuffer.getLong());
+
     }
 
     private static byte charToByte(char c) {

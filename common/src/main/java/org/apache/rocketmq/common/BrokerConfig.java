@@ -86,6 +86,15 @@ public class BrokerConfig {
 
     private int filterServerNums = 0;
 
+    /**
+     * 是否开始长轮询
+     * RocketMQ的消息消费方式，采用了“长轮询”方式，兼具了Push和Pull的有点，不过需要Server和Client的配合才能够实现。
+     * 即Client发送消息请求，Server端接受请求，如果发现Server队列里没有新消息，Server端不立即返回，而是持有这个请求一段时间（通过设置超时时间来实现），
+     * 在这段时间内轮询Server队列内是否有新的消息，如果有新消息，就利用现有的连接返回消息给消费者；如果这段时间内没有新消息进入队列，则返回空。
+     * 这样消费消息的主动权既保留在Client端，也不会出现Server积压大量消息后，短时间内推送给Client大量消息使client因为性能问题出现消费不及时的情况。
+     *
+     * 长轮询的弊端：在持有消费者请求的这段时间，占用了系统资源，因此长轮询适合客户端连接数可控的业务场景中。
+     */
     private boolean longPollingEnable = true;
 
     private long shortPollingTimeMills = 1000;

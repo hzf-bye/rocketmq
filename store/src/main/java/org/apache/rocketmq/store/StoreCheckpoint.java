@@ -27,13 +27,31 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 
+/**
+ * 文件监测点，存储commitlog文件最后一次刷盘时间戳、consumerqueue最后一次刷盘时间戳、index索引文件最后一次刷盘时间戳。
+ * 文件固定长度为4k，只用该文件前面24个字节。分别是8个字节的physicMsgTimestamp：commitlog文件刷盘时间点，
+ * 8个字节的logicsMsgTimestamp：消息消费队列文件刷盘时间点，8个字节的indexMsgTimestamp：索引文件文件刷盘时间点。
+ *
+ */
 public class StoreCheckpoint {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final RandomAccessFile randomAccessFile;
     private final FileChannel fileChannel;
     private final MappedByteBuffer mappedByteBuffer;
+    /**
+     * commitlog文件刷盘时间点
+     * 此时间应该是commitlog文件中最新一条消息的存储时间戳
+     */
     private volatile long physicMsgTimestamp = 0;
+    /**
+     * 消息消费队列文件刷盘时间点
+     * 此时间应该是 消息消费队列（consumeQueue）文件中最新一条消息的存储时间戳
+     */
     private volatile long logicsMsgTimestamp = 0;
+    /**
+     * 索引文件文件刷盘时间点
+     * 此时间应该是索引文件中最新一条消息的存储时间戳
+     */
     private volatile long indexMsgTimestamp = 0;
 
     public StoreCheckpoint(final String scpPath) throws IOException {

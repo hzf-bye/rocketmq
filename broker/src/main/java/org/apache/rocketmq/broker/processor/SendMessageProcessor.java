@@ -54,6 +54,9 @@ import java.net.SocketAddress;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 消息发送处理器
+ */
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
     private List<ConsumeMessageHook> consumeMessageHookList;

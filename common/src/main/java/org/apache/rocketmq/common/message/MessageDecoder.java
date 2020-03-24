@@ -34,9 +34,17 @@ public class MessageDecoder {
     public final static int MSG_ID_LENGTH = 8 + 8;
 
     public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    /**
+     * 一个消息中，魔数的起始偏移量
+     */
     public final static int MESSAGE_MAGIC_CODE_POSTION = 4;
     public final static int MESSAGE_FLAG_POSTION = 16;
     public final static int MESSAGE_PHYSIC_OFFSET_POSTION = 28;
+    /**
+     * 一个完整的消息第56位开始的8个字节存储的是消息存储时间戳
+     * 详见
+     * {@link org.apache.rocketmq.store.CommitLog.DefaultAppendMessageCallback#doAppend(long, java.nio.ByteBuffer, int, org.apache.rocketmq.store.MessageExtBrokerInner)}
+     */
     public final static int MESSAGE_STORE_TIMESTAMP_POSTION = 56;
     public final static int MESSAGE_MAGIC_CODE = -626843481;
     public static final char NAME_VALUE_SEPARATOR = 1;
@@ -63,6 +71,7 @@ public class MessageDecoder {
         input.put(addr);
         input.putLong(offset);
 
+        //为了消息可读性，将字节数组转化为String
         return UtilAll.bytes2string(input.array());
     }
 

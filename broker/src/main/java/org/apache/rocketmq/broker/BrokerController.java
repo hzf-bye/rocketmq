@@ -131,6 +131,11 @@ public class BrokerController {
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
         "BrokerControllerScheduledThread"));
     private final SlaveSynchronize slaveSynchronize;
+    /**
+     * 消息发送线程池中的队列{@link BrokerController#sendMessageExecutor}
+     * 大小默认10000{@link BrokerConfig#sendThreadPoolQueueCapacity}
+     *
+     */
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
     private final BlockingQueue<Runnable> queryThreadPoolQueue;
@@ -150,6 +155,7 @@ public class BrokerController {
     private TopicConfigManager topicConfigManager;
     /**
      * 发送消息执行器
+     * 注册线程信息{@link BrokerController#registerProcessor()}
      */
     private ExecutorService sendMessageExecutor;
     /**
@@ -530,6 +536,7 @@ public class BrokerController {
         sendProcessor.registerSendMessageHook(sendMessageHookList);
         sendProcessor.registerConsumeMessageHook(consumeMessageHookList);
 
+        //注册Broker消息处理发送的线程池信息
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendProcessor, this.sendMessageExecutor);
         this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendProcessor, this.sendMessageExecutor);
         this.remotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendProcessor, this.sendMessageExecutor);

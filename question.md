@@ -5,3 +5,7 @@
 > org.apache.rocketmq.broker.processor.AbstractSendMessageProcessor.msgCheck
 #####3.MixAll.RETRY_GROUP_TOPIC_PREFIX
 > Procuder发送消息时topic以%RETRY%开头作用是啥，以及与之关联的org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader.reconsumeTimes作用
+#####4. MessageSysFlag类中的事务消息相关的几个字段分别是啥意思
+> TRANSACTION_NOT_TYPE、TRANSACTION_PREPARED_TYPE、TRANSACTION_COMMIT_TYPE、TRANSACTION_ROLLBACK_TYPE
+#####5. org.apache.rocketmq.store.DefaultMessageStore.isOSPageCacheBusy
+> 方法中为什么判断 diff < 10000000，疑惑点详见方法注释

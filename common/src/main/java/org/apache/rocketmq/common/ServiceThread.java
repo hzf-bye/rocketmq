@@ -28,7 +28,14 @@ public abstract class ServiceThread implements Runnable {
     private static final long JOIN_TIME = 90 * 1000;
 
     protected final Thread thread;
+    /**
+     * 标识线程执行完一批刷盘任务后，是否需要等待一会儿。
+     */
     protected final CountDownLatch2 waitPoint = new CountDownLatch2(1);
+
+    /**
+     * true标识有任务提交至此线程
+     */
     protected volatile AtomicBoolean hasNotified = new AtomicBoolean(false);
     protected volatile boolean stopped = false;
 
@@ -104,6 +111,7 @@ public abstract class ServiceThread implements Runnable {
     }
 
     protected void waitForRunning(long interval) {
+        //hasNotified为true，标识有任务提交至写容器中
         if (hasNotified.compareAndSet(true, false)) {
             this.onWaitEnd();
             return;
@@ -113,6 +121,7 @@ public abstract class ServiceThread implements Runnable {
         waitPoint.reset();
 
         try {
+            //等待一会儿
             waitPoint.await(interval, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             log.error("Interrupted", e);

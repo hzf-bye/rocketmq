@@ -21,6 +21,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 /**
  * Common remoting command processor
+ * RocketMQ 服务端请求处理器，例如SendMessageProcessor是消息发送处理器、PullMessageProcessor是消息拉取命令处理器。
  */
 public interface NettyRequestProcessor {
     RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)

@@ -27,7 +27,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
  */
 public class Producer {
 
-    public static void main(String[] args) throws MQClientException, InterruptedException {
+    public static void main1(String[] args) throws MQClientException, InterruptedException {
 
         /*
          * Instantiate with a producer group name.

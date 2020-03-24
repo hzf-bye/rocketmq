@@ -41,6 +41,7 @@ import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
 public class ScheduleMessageService extends ConfigManager {
@@ -51,6 +52,12 @@ public class ScheduleMessageService extends ConfigManager {
     private static final long DELAY_FOR_A_WHILE = 100L;
     private static final long DELAY_FOR_A_PERIOD = 10000L;
 
+    /**
+     * key：消息延迟级别
+     * value：该延迟级别对应的延迟时间，单位毫秒
+     * 延迟级别{@link MessageStoreConfig#messageDelayLevel}
+     * 比如延迟级别1 那么就代表延迟1s，以此类推
+     */
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<Integer, Long>(32);
 
@@ -183,6 +190,7 @@ public class ScheduleMessageService extends ConfigManager {
             for (int i = 0; i < levelArray.length; i++) {
                 String value = levelArray[i];
                 String ch = value.substring(value.length() - 1);
+                //将延迟时间都转化为毫秒
                 Long tu = timeUnitTable.get(ch);
 
                 int level = i + 1;

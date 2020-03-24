@@ -19,20 +19,70 @@ package org.apache.rocketmq.store;
 import java.util.Map;
 
 public class DispatchRequest {
+
+    /**
+     * 消息主题
+     */
     private final String topic;
+    /**
+     * 消息队列id
+     */
     private final int queueId;
+    /**
+     * 消息物理偏移量
+     */
     private final long commitLogOffset;
+    /**
+     * 消息大小
+     */
     private final int msgSize;
+    /**
+     * 消息tag的hashCode
+     * 若是延时消息tagsCode存储的是消息存储时间戳+延时时间后的时间戳
+     * {@link org.apache.rocketmq.store.CommitLog#checkMessageAndReturnSize(java.nio.ByteBuffer, boolean, boolean)}
+     */
     private final long tagsCode;
+    /**
+     * 消息存储时间戳
+     */
     private final long storeTimestamp;
+    /**
+     * 消息消费队列偏移量
+     * {@link org.apache.rocketmq.store.CommitLog#topicQueueTable}
+     * 初始化是在
+     * {@link CommitLog.DefaultAppendMessageCallback#doAppend(long, java.nio.ByteBuffer, int, org.apache.rocketmq.store.MessageExtBrokerInner)}中
+     */
     private final long consumeQueueOffset;
+    /**
+     * 消息索引key，多个key用空格隔开
+     */
     private final String keys;
+    /**
+     * 是否成功解析到完整的消息
+     */
     private final boolean success;
+    /**
+     * 消息唯一键
+     * {@link MessageClientIDSetter#setUniqID(org.apache.rocketmq.common.message.Message)}
+     */
     private final String uniqKey;
 
+    /**
+     * 消息系统标志
+     * {@link org.apache.rocketmq.common.sysflag.MessageSysFlag}
+     */
     private final int sysFlag;
+    /**
+     * 消息预处理事务偏移量
+     */
     private final long preparedTransactionOffset;
+    /**
+     * 消息属性
+     */
     private final Map<String, String> propertiesMap;
+    /**
+     * 位图
+     */
     private byte[] bitMap;
 
     public DispatchRequest(

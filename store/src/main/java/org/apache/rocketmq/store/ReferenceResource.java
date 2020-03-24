@@ -19,16 +19,40 @@ package org.apache.rocketmq.store;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class ReferenceResource {
+
+    /**
+     * 引用计数
+     */
     protected final AtomicLong refCount = new AtomicLong(1);
+
+    /**
+     * 标识是否可用
+     * 调用shutdown方法后未false
+     */
     protected volatile boolean available = true;
+
+    /**
+     * 标识是否是否资源
+     * true-{@link ReferenceResource#release()}方法成功将{@link MappedFile#mappedByteBuffer}资源释放。
+     */
     protected volatile boolean cleanupOver = false;
+
+    /**
+     * 初次关闭的时间戳
+     */
     private volatile long firstShutdownTimestamp = 0;
 
+    /**
+     * 判断是否有引用
+     */
     public synchronized boolean hold() {
         if (this.isAvailable()) {
+            //判断当前引用计数并且+1
             if (this.refCount.getAndIncrement() > 0) {
+                //引用>0，返回true
                 return true;
             } else {
+                //引用<=0，并且if中已经+1了，这里再-1
                 this.refCount.getAndDecrement();
             }
         }
@@ -41,11 +65,18 @@ public abstract class ReferenceResource {
     }
 
     public void shutdown(final long intervalForcibly) {
+        //初次调用时available为true
         if (this.available) {
+            //设置为false
             this.available = false;
+            //设置初次关闭的时间戳
             this.firstShutdownTimestamp = System.currentTimeMillis();
+            //释放资源
             this.release();
         } else if (this.getRefCount() > 0) {
+            //当available为false，并且此时还有引用计数，
+            //并且第一次关闭时间戳到现在的时间已经大于等于intervalForcibly了
+            //那么设置引用计数为负数，代表无引用，并且释放资源
             if ((System.currentTimeMillis() - this.firstShutdownTimestamp) >= intervalForcibly) {
                 this.refCount.set(-1000 - this.getRefCount());
                 this.release();
@@ -54,7 +85,9 @@ public abstract class ReferenceResource {
     }
 
     public void release() {
+        //引用计数-1
         long value = this.refCount.decrementAndGet();
+        //当引用计数 <=0 时才会释放资源
         if (value > 0)
             return;
 
@@ -70,6 +103,10 @@ public abstract class ReferenceResource {
 
     public abstract boolean cleanup(final long currentRef);
 
+    /**
+     * 判断资源是否释放，
+     * 引用计数<=0且cleanupOver被标记为true
+     */
     public boolean isCleanupOver() {
         return this.refCount.get() <= 0 && this.cleanupOver;
     }
