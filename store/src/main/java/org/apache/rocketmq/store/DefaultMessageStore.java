@@ -90,11 +90,13 @@ public class DefaultMessageStore implements MessageStore {
 
     /**
      * 清除CommitLog文件服务
+     * @see DefaultMessageStore#addScheduleTask()
      */
     private final CleanCommitLogService cleanCommitLogService;
 
     /**
      * 清除ConsumeQueue文件服务
+     * @see DefaultMessageStore#addScheduleTask()
      */
     private final CleanConsumeQueueService cleanConsumeQueueService;
 
@@ -1296,6 +1298,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private void addScheduleTask() {
 
+        //默认每10s调用一次cleanFilesPeriodically方法，检测是否需要清除过期文件（commitLog与consumeQueue）。
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -1303,6 +1306,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
 
+        //检测commitLog文件与consumeQueue文件中，各个文件名字的间隔是否相差对应的默认的文件大小，有问题则日志警告
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
@@ -1310,11 +1314,16 @@ public class DefaultMessageStore implements MessageStore {
             }
         }, 1, 10, TimeUnit.MINUTES);
 
+        //检测是否有写消息超时，存在写消息超时则记录当前线程的堆栈信息至文件中
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
                 if (DefaultMessageStore.this.getMessageStoreConfig().isDebugLockEnable()) {
                     try {
+                        /**
+                         * 判断逻辑同
+                         * @see org.apache.rocketmq.store.DefaultMessageStore#isOSPageCacheBusy()
+                         */
                         if (DefaultMessageStore.this.commitLog.getBeginTimeInLock() != 0) {
                             long lockTime = System.currentTimeMillis() - DefaultMessageStore.this.commitLog.getBeginTimeInLock();
                             if (lockTime > 1000 && lockTime < 10000000) {
@@ -1609,6 +1618,7 @@ public class DefaultMessageStore implements MessageStore {
 
         public void run() {
             try {
+                //删除过期的文件
                 this.deleteExpiredFiles();
 
                 this.redeleteHangedFile();
@@ -1618,13 +1628,37 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         private void deleteExpiredFiles() {
+            //
             int deleteCount = 0;
+            //文件保留时间，如果超过了该时间，则认为是过期时间，可以被删除，默认72小时
+            // 也就是最后一次文件更新时间到现在的时间超过72小时，可以被删除
             long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
+            // 删除物理文件的间隔，因为在一次清楚过程中，可能需要被删除的文件不止一个，该值指定两次删除文件的时间间隔。默认100ms
             int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
+            /**
+             * 在清除过期文件时。如果该文件被其它线程所占用（引用次数大于0，比如读取消息），此时会阻止此次删除任务，同时再第一次删除时记录当前时间戳，
+             * destroyMapedFileIntervalForcibly表示第一次拒绝删除后能保留的最大时间，在此时间内，同样可以被拒绝删除，超过时间间隔后，会将引用此时设置为负数，
+             * 文件将被强制删除。默认120s
+             */
             int destroyMapedFileIntervalForcibly = DefaultMessageStore.this.getMessageStoreConfig().getDestroyMapedFileIntervalForcibly();
 
+            /**
+             * 指定删除文件的时间点，RocketMQ通过{@link org.apache.rocketmq.store.config.MessageStoreConfig.deleteWhen}
+             * 设置一天的固定时间执行一次删除过期文件操作
+             * 默认凌晨4点
+             */
             boolean timeup = this.isTimeToDelete();
+            /**
+             * 磁盘空间是否充足，如果磁盘空间不充足，则返回true。
+             * 表示应该触发删除操作。
+             * 如果文件所在分区使用率大于 ({@link org.apache.rocketmq.store.config.MessageStoreConfig#diskMaxUsedSpaceRatio} / 100.0)
+             * 则表示磁盘空间不充足
+             */
             boolean spacefull = this.isSpaceToDelete();
+            /**
+             * 预留，手工触发，可以通过调动{@link DefaultMessageStore#executeDeleteFilesManually()}方法手工触发过期文件删除。
+             * 但是目前RocketMQ暂时未封装手工触发文件删除的命令。
+             */
             boolean manualDelete = this.manualDeleteFileSeveralTimes > 0;
 
             if (timeup || spacefull || manualDelete) {
@@ -1788,24 +1822,38 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * 这里是将内存中的消息消费数据刷盘，而数据写入内存是在
+     * @see ReputMessageService 线程中
+     */
     class FlushConsumeQueueService extends ServiceThread {
         private static final int RETRY_TIMES_OVER = 3;
         private long lastFlushTimestamp = 0;
 
+        /**
+         * 消息消费队列刷盘
+         * @param retryTimes 重试次数
+         */
         private void doFlush(int retryTimes) {
+            //消息消费队列刷盘时一次提交任务至少包含页数，如果待提交数据不足，小于该参数配置的值，将忽略本次提交，默认2页
             int flushConsumeQueueLeastPages = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueLeastPages();
 
+            //retryTimes == 3表示所有未刷盘的数据都刷盘
             if (retryTimes == RETRY_TIMES_OVER) {
                 flushConsumeQueueLeastPages = 0;
             }
 
             long logicsMsgTimestamp = 0;
 
+            //两次刷盘最大时间间隔，默认60s
             int flushConsumeQueueThoroughInterval = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueThoroughInterval();
             long currentTimeMillis = System.currentTimeMillis();
+            //如果距上次刷盘时间超过flushConsumeQueueThoroughInterval，则本次刷盘忽略flushConsumeQueueLeastPages参数，
+            //就是当flushConsumeQueueLeastPages=0时，表示如果待刷盘数据小于指定的页数，也执行刷盘操作
             if (currentTimeMillis >= (this.lastFlushTimestamp + flushConsumeQueueThoroughInterval)) {
                 this.lastFlushTimestamp = currentTimeMillis;
                 flushConsumeQueueLeastPages = 0;
+                //更新检测点文件的consumeQueue文件的更新时间戳
                 logicsMsgTimestamp = DefaultMessageStore.this.getStoreCheckpoint().getLogicsMsgTimestamp();
             }
 
@@ -1815,6 +1863,7 @@ public class DefaultMessageStore implements MessageStore {
                 for (ConsumeQueue cq : maps.values()) {
                     boolean result = false;
                     for (int i = 0; i < retryTimes && !result; i++) {
+                        //刷盘，result==false表示有数据刷盘成功
                         result = cq.flush(flushConsumeQueueLeastPages);
                     }
                 }
@@ -1822,8 +1871,10 @@ public class DefaultMessageStore implements MessageStore {
 
             if (0 == flushConsumeQueueLeastPages) {
                 if (logicsMsgTimestamp > 0) {
+                    //更新检测点文件的consumeQueue文件的更新时间戳
                     DefaultMessageStore.this.getStoreCheckpoint().setLogicsMsgTimestamp(logicsMsgTimestamp);
                 }
+                //检测点文件刷盘
                 DefaultMessageStore.this.getStoreCheckpoint().flush();
             }
         }
@@ -1833,6 +1884,7 @@ public class DefaultMessageStore implements MessageStore {
 
             while (!this.isStopped()) {
                 try {
+                    //线程默认运行间隔
                     int interval = DefaultMessageStore.this.getMessageStoreConfig().getFlushIntervalConsumeQueue();
                     this.waitForRunning(interval);
                     this.doFlush(1);
@@ -1861,6 +1913,13 @@ public class DefaultMessageStore implements MessageStore {
      * 消息消费队列文件、消息索引文件都是基于CommitLog文件构造，当消息生产者提交的消息存储在CommitLog文件中，ConsumeQueue、IndexFile需要及时更新，
      * 否则消息无法及时被消费，根据消息属性来查找消息也会出现较大延迟。RocketMQ通过一个线程ReputMessageService来准时转发CommitLog文件更新事件，
      * 相应的任务处理器根据转发的消息及时更新ConsumerQueue/IndexFile文件。
+     *
+     * 这里是将消息写入ConsumeQueue、IndexFile内存中，
+     * 而ConsumeQueue内存数据刷盘是在
+     * @see FlushConsumeQueueService
+     * IndexFile内存数据刷盘是在本线程调动最终buildIndex方法的逻辑中。
+     * @see IndexService#buildIndex(org.apache.rocketmq.store.DispatchRequest)
+     *
      */
     class ReputMessageService extends ServiceThread {
 

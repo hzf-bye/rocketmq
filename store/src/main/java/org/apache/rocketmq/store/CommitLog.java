@@ -101,6 +101,8 @@ public class CommitLog {
      * 获取到了那么设置beginTimeInLock为当前时间，
      * 处理完本次消息后不管成功还是失败 那么beginTimeInLock都将设为初始值0
      *
+     * 所以beginTimeInLock==0时表示当前没有消息写入
+     *
      * 处理逻辑见：
      * {@link org.apache.rocketmq.store.CommitLog#putMessage(org.apache.rocketmq.store.MessageExtBrokerInner)}
      */
@@ -801,6 +803,9 @@ public class CommitLog {
         // 异步刷盘
         else {
             //根据是否开启transientStorePoolEnable机制，输盘实现会有细微差别。
+            /**
+             * 开启transientStorePoolEnable机制，详见{@link TransientStorePool}
+             */
             if (!this.defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
                 flushCommitLogService.wakeup();
             } else {
@@ -1068,6 +1073,9 @@ public class CommitLog {
 
     class CommitRealTimeService extends FlushCommitLogService {
 
+        /**
+         * 上一次提交时间
+         */
         private long lastCommitTimestamp = 0;
 
         @Override
@@ -1079,31 +1087,46 @@ public class CommitLog {
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
             while (!this.isStopped()) {
+                //CommitRealTimeService线程间隔时间，默认200ms
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitIntervalCommitLog();
-
+                //异步刷盘时一次提交任务至少包含页数，如果待提交数据不足，小于该参数配置的值，将忽略本次提交，默认4页
                 int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();
-
+                //两次真实提交最大间隔，默认200ms
                 int commitDataThoroughInterval =
                     CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
 
                 long begin = System.currentTimeMillis();
+                //如果距离上次提交间隔超过commitDataThoroughInterval，则本次提交忽略commitDataLeastPages参数，
+                //也就是当commitDataLeastPages=0时，表示如果待提交数据小于指定的页数，也执行提交操作
                 if (begin >= (this.lastCommitTimestamp + commitDataThoroughInterval)) {
                     this.lastCommitTimestamp = begin;
                     commitDataLeastPages = 0;
                 }
 
                 try {
+                    //执行提交操作，将待提交数据提交到物理文件的内存映射区，如果返回false，表示有数据提交成功，唤醒刷盘线程执行刷盘操作。
                     boolean result = CommitLog.this.mappedFileQueue.commit(commitDataLeastPages);
                     long end = System.currentTimeMillis();
                     if (!result) {
                         this.lastCommitTimestamp = end; // result = false means some data committed.
                         //now wake up flush thread.
+                        /*
+                         * 有数据提交唤醒刷盘线程。
+                         * 根据是否开启transientStorePoolEnable机制来唤醒不同的线程
+                         * 开启的话唤醒FlushRealTimeService线程
+                         * 未开启的话唤醒GroupCommitService线程
+                         */
                         flushCommitLogService.wakeup();
                     }
 
                     if (end - begin > 500) {
                         log.info("Commit data to file costs {} ms", end - begin);
                     }
+                    /* 每提交一次，都会尝试休息200ms，
+                     * 除非有消息来提前唤醒该线程。也就是方法中
+                     * {@link CommitLog#handleDiskFlush(org.apache.rocketmq.store.AppendMessageResult, org.apache.rocketmq.store.PutMessageResult, org.apache.rocketmq.common.message.MessageExt)}
+                     * 调用此线程的wakeup方法
+                     */
                     this.waitForRunning(interval);
                 } catch (Throwable e) {
                     CommitLog.log.error(this.getServiceName() + " service has exception. ", e);
@@ -1120,6 +1143,9 @@ public class CommitLog {
     }
 
     class FlushRealTimeService extends FlushCommitLogService {
+        /**
+         * 上一次刷盘时间
+         */
         private long lastFlushTimestamp = 0;
         private long printTimes = 0;
 
@@ -1127,11 +1153,15 @@ public class CommitLog {
             CommitLog.log.info(this.getServiceName() + " service started");
 
             while (!this.isStopped()) {
+                //默认为false，标识await方法等待时间；如果为true，标识使用Thread.sleep方法等待
                 boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
 
+                //FlushRealTimeService线程运行任务间隔，默认50ms
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
+                // 一次刷盘任务至少包含页数，如果待刷写数据不足，小于该参数配置的值，将忽略本息刷盘任务，默认4页
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
+                //两次刷写任务最大时间间隔，默认10s
                 int flushPhysicQueueThoroughInterval =
                     CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
 
@@ -1139,6 +1169,8 @@ public class CommitLog {
 
                 // Print flush progress
                 long currentTimeMillis = System.currentTimeMillis();
+                //如果距上次刷盘时间超过flushPhysicQueueThoroughInterval，则本次刷盘忽略flushPhysicQueueLeastPages参数，
+                //就是当flushPhysicQueueLeastPages=0时，表示如果待刷盘数据小于指定的页数，也执行刷盘操作
                 if (currentTimeMillis >= (this.lastFlushTimestamp + flushPhysicQueueThoroughInterval)) {
                     this.lastFlushTimestamp = currentTimeMillis;
                     flushPhysicQueueLeastPages = 0;
@@ -1146,17 +1178,25 @@ public class CommitLog {
                 }
 
                 try {
+                    //执行一次刷盘任务时先等待指定的时间，然后再执行刷盘任务
                     if (flushCommitLogTimed) {
                         Thread.sleep(interval);
                     } else {
                         this.waitForRunning(interval);
                     }
 
+                    //打印刷盘进度，目前空函数
                     if (printFlushProgress) {
                         this.printFlushProgress();
                     }
 
                     long begin = System.currentTimeMillis();
+                    /**
+                     * 刷盘，并且更新检测点文件的commitlog文件的更新时间戳，文件检测点的刷盘动作在刷盘消息消费队列线程中执行，
+                     * 其入口为{@link DefaultMessageStore.FlushConsumeQueueService#doFlush(int)}
+                     * 或者
+                     * {@link org.apache.rocketmq.store.index.IndexService#flush(org.apache.rocketmq.store.index.IndexFile)}
+                     */
                     CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);
                     long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                     if (storeTimestamp > 0) {
@@ -1315,6 +1355,11 @@ public class CommitLog {
                             //当前消息没有刷盘则刷盘
                             if (!flushOK) {
                                 //刷盘
+                                /**
+                                 * 同步刷盘策略，如果开启transientStorePoolEnable机制时为什么这里也是直接刷盘，而不用先提交数据呢?
+                                 * 因为开启transientStorePoolEnable机制，会有{@link org.apache.rocketmq.store.CommitLog.CommitRealTimeService#run()}
+                                 * 线程默认每200ms执行一次提交操作，因此这里直接输盘即可。
+                                 */
                                 CommitLog.this.mappedFileQueue.flush(0);
                             }
                         }
@@ -1323,7 +1368,10 @@ public class CommitLog {
                         req.wakeupCustomer(flushOK);
                     }
 
-                    //更新消息的刷盘时间，但是并没有执行刷盘操作，检测刷盘操作将在写消息队列的文件时触发。
+                    /**
+                     * 更新消息的刷盘时间，但是并没有执行刷盘操作，检测刷盘操作将在写消息队列的文件时触发。
+                     * 其入口为{@link DefaultMessageStore.FlushConsumeQueueService#doFlush(int)}
+                     */
                     long storeTimestamp = CommitLog.this.mappedFileQueue.getStoreTimestamp();
                     if (storeTimestamp > 0) {
                         CommitLog.this.defaultMessageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimestamp);
@@ -1341,7 +1389,7 @@ public class CommitLog {
 
         /**
          * GroupCommitService组提交线程，没处理一批刷盘请求后，如果后续有待刷盘的请求需要处理时，
-         * 组提交线程会马不停蹄对的处理下一批，如果没有待处理的任务，则休息10ms，即没10ms空转一次。
+         * 组提交线程会马不停蹄对的处理下一批，如果没有待处理的任务，则休息10ms，即每10ms空转一次。
          */
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");

@@ -43,7 +43,10 @@ public abstract class ReferenceResource {
     private volatile long firstShutdownTimestamp = 0;
 
     /**
-     * 判断是否有引用
+     * 判断是否有引用，如果有引用那么引用次数再+1，返回true
+     * 否则返回false
+     * 当每调用一次hold方法返回true后表示当前文件的引用此时+1，
+     * 那么在处理完后都将调用release()方法引用次数-1
      */
     public synchronized boolean hold() {
         if (this.isAvailable()) {

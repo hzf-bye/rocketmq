@@ -187,9 +187,11 @@ public class UtilAll {
             if (!file.exists())
                 return -1;
 
+            //返回此抽象路径名的分区的大小
             long totalSpace = file.getTotalSpace();
 
             if (totalSpace > 0) {
+                //抽象路径名的分区中的未分配的字节数
                 long freeSpace = file.getFreeSpace();
                 long usedSpace = totalSpace - freeSpace;
 

@@ -510,13 +510,22 @@ public class MappedFileQueue {
         return deleteCount;
     }
 
+    /**
+     *
+     * @return true-此次没有数据提交，false-此次有数据提交成功
+     */
     public boolean flush(final int flushLeastPages) {
         boolean result = true;
         MappedFile mappedFile = this.findMappedFileByOffset(this.flushedWhere, this.flushedWhere == 0);
         if (mappedFile != null) {
             long tmpTimeStamp = mappedFile.getStoreTimestamp();
+            // offset标识刷盘之后的刷盘指针
             int offset = mappedFile.flush(flushLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;
+            /*
+             * 如果此时result为false，表示 where != this.committedWhere，也就表示此次有数据提交成功
+             * 反之result为true，表示此次没有数据提交。
+             */
             result = where == this.flushedWhere;
             this.flushedWhere = where;
             if (0 == flushLeastPages) {
@@ -530,6 +539,7 @@ public class MappedFileQueue {
     /**
      *
      * @param commitLeastPages {@link MessageStoreConfig#commitCommitLogLeastPages}
+     * @return true-此次没有数据提交，false-此次有数据提交成功
      */
     public boolean commit(final int commitLeastPages) {
         boolean result = true;
@@ -537,6 +547,10 @@ public class MappedFileQueue {
         if (mappedFile != null) {
             int offset = mappedFile.commit(commitLeastPages);
             long where = mappedFile.getFileFromOffset() + offset;
+            /*
+             * 如果此时result为false，表示 where != this.committedWhere，也就表示此次有数据提交成功
+             * 反之result为true，表示此次没有数据提交。
+             */
             result = where == this.committedWhere;
             this.committedWhere = where;
         }

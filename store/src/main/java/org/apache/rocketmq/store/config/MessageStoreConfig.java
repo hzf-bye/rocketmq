@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.DefaultMessageStore;
 
 /**
  *可以在启动Broker时通过-c 命令指定配置文件命令，然后会通过反射赋值含有set方法的属性
@@ -61,11 +62,20 @@ public class MessageStoreConfig {
 
     // CommitLog flush interval
     // flush data to disk
+    /**
+     * FlushRealTimeService线程运行任务间隔
+     * @see CommitLog.FlushRealTimeService#run()
+     */
     @ImportantField
     private int flushIntervalCommitLog = 500;
 
     // Only used if TransientStorePool enabled
     // flush data to FileChannel
+    /**
+     * 开启transientStorePoolEnable机制时，
+     * CommitRealTimeService线程间隔时间，默认200ms
+     * {@link CommitLog.CommitRealTimeService#run()}
+     */
     @ImportantField
     private int commitIntervalCommitLog = 200;
 
@@ -76,23 +86,65 @@ public class MessageStoreConfig {
     private boolean useReentrantLockWhenPutMessage = false;
 
     // Whether schedule flush,default is real-time
+    /**
+     * 异步刷盘时线程等待方式
+     * 默认为false，标识await方法等待时间；如果为true，标识使用Thread.sleep方法等待
+     * @see CommitLog.FlushRealTimeService#run()
+     */
     @ImportantField
     private boolean flushCommitLogTimed = false;
     // ConsumeQueue flush interval
+    /**
+     * FlushConsumeQueueService线程运行间隔
+     * @see DefaultMessageStore.FlushConsumeQueueService#run()
+     */
     private int flushIntervalConsumeQueue = 1000;
     // Resource reclaim interval
+    /**
+     * 定时任务每隔多久调度一次，检测是否需要清除过期文件，默认10s
+     * @see DefaultMessageStore#addScheduleTask()
+     */
     private int cleanResourceInterval = 10000;
     // CommitLog removal interval
+    /**
+     * 删除物理文件的间隔，因为在一次清楚过程中，可能需要被删除的文件不止一个，该值指定两次删除文件的时间间隔。
+     * 默认100ms
+     */
     private int deleteCommitLogFilesInterval = 100;
     // ConsumeQueue removal interval
     private int deleteConsumeQueueFilesInterval = 100;
+    /**
+     * 在清除过期文件时。如果该文件被其它线程所占用（引用次数大于0，比如读取消息），此时会阻止此次删除任务，同时再第一次删除时记录当前时间戳，
+     * destroyMapedFileIntervalForcibly表示第一次拒绝删除后能保留的最大时间，在此时间内，同样可以被拒绝删除，超过时间间隔后，会将引用此时设置为负数，
+     * 文件将被强制删除。默认120s
+     * @see DefaultMessageStore.CleanCommitLogService#deleteExpiredFiles()
+     */
     private int destroyMapedFileIntervalForcibly = 1000 * 120;
     private int redeleteHangedFileInterval = 1000 * 120;
     // When to delete,default is at 4 am
+
+    /**
+     * 指定删除文件的时间点，RocketMQ通过{@link MessageStoreConfig#deleteWhen}
+     * 设置一天的固定时间执行一次删除过期文件操作
+     * 默认凌晨4点
+     * @see DefaultMessageStore.CleanCommitLogService#deleteExpiredFiles()
+     */
     @ImportantField
     private String deleteWhen = "04";
+    /**
+     * 磁盘空间是否充足，如果磁盘空间不充足，则返回true。
+     * 表示应该触发删除操作。
+     * 如果文件所在分区使用率大于0.75（默认值）
+     * 则表示磁盘空间不充足
+     * @see DefaultMessageStore.CleanCommitLogService#deleteExpiredFiles()
+     */
     private int diskMaxUsedSpaceRatio = 75;
     // The number of hours to keep a log file before deleting it (in hours)
+    /**
+     * 文件保留时间，如果超过了该时间，则认为是过期时间，可以被删除，默认72小时
+     * 也就是最后一次文件更新时间到现在的时间超过72小时，可以被删除
+     * @see org.apache.rocketmq.store.DefaultMessageStore.CleanCommitLogService#deleteExpiredFiles()
+     */
     @ImportantField
     private int fileReservedTime = 72;
     // Flow control for ConsumeQueue
@@ -103,20 +155,47 @@ public class MessageStoreConfig {
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
     // This check adds some overhead,so it may be disabled in cases seeking extreme performance.
     /**
-     * 是否检查消耗的记录的CRC32，这样可确保不会对消息进行任何在线或磁盘损坏。此检查会增加一些开销，因此在寻求极端性能的情况下可能会被禁用。
+     * 是否检查消耗的记录的CRC32，这样可确保不会对消息进行任何在线或磁盘损坏。
+     * 此检查会增加一些开销，因此在寻求极端性能的情况下可能会被禁用。
      * 在进行文件恢复查找消息时是否验证CRC
+     * @see CommitLog#checkMessageAndReturnSize(java.nio.ByteBuffer, boolean)
+     * 第二个参数
      */
     private boolean checkCRCOnRecover = true;
     // How many pages are to be flushed when flush CommitLog
+    /**
+     * 一次刷盘任务至少包含页数，如果待刷写数据不足，小于该参数配置的值，将忽略本息刷盘任务，默认4页
+     * @see CommitLog.FlushRealTimeService#run()
+     */
     private int flushCommitLogLeastPages = 4;
     // How many pages are to be committed when commit data to file
+    /**
+     * 异步刷盘时一次提交任务至少包含页数，如果待提交数据不足，小于该参数配置的值，将忽略本次提交，默认四页
+     * {@link CommitLog.FlushRealTimeService#run()}
+     */
     private int commitCommitLogLeastPages = 4;
     // Flush page size when the disk in warming state
     private int flushLeastPagesWhenWarmMapedFile = 1024 / 4 * 16;
     // How many pages are to be flushed when flush ConsumeQueue
+    /**
+     * 消息消费队列刷盘时一次提交任务至少包含页数，如果待提交数据不足，小于该参数配置的值，将忽略本次提交，默认2页
+     * @see DefaultMessageStore.FlushConsumeQueueService#doFlush(int)
+     */
     private int flushConsumeQueueLeastPages = 2;
+    /**
+     * 两次刷写任务最大时间间隔，默认10s
+     * @see CommitLog.FlushRealTimeService#run()
+     */
     private int flushCommitLogThoroughInterval = 1000 * 10;
+    /**
+     * 消息异步刷盘两次真实提交最大间隔，默认200ms
+     * @see org.apache.rocketmq.store.CommitLog.CommitRealTimeService#run()
+     */
     private int commitCommitLogThoroughInterval = 200;
+    /**
+     * 消息消费队列两次刷盘最大时间间隔
+     * @see DefaultMessageStore.FlushConsumeQueueService#doFlush(int)
+     */
     private int flushConsumeQueueThoroughInterval = 1000 * 60;
     @ImportantField
     private int maxTransferBytesOnMessageInMemory = 1024 * 256;
