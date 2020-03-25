@@ -160,6 +160,8 @@ public class MessageStoreConfig {
      * 在进行文件恢复查找消息时是否验证CRC
      * @see CommitLog#checkMessageAndReturnSize(java.nio.ByteBuffer, boolean)
      * 第二个参数
+     *~
+     *
      */
     private boolean checkCRCOnRecover = true;
     // How many pages are to be flushed when flush CommitLog
