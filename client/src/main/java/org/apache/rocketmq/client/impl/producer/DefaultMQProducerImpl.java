@@ -486,6 +486,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.mqFaultStrategy.updateFaultItem(brokerName, currentLatency, isolation);
     }
 
+    /**
+     *
+     * @param msg 消息体
+     * @param communicationMode 同步消息、异步消息、单向发送消息
+     * @param sendCallback 回调函数，异步时不为空
+     * @param timeout 发送消息超时时间
+     */
     private SendResult sendDefaultImpl(
         Message msg,
         final CommunicationMode communicationMode,
@@ -988,6 +995,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return send(msg, mq, this.defaultMQProducer.getSendMsgTimeout());
     }
 
+    /**
+     *
+     * @param msg 消息体
+     * @param mq 发送消息时的消息队列
+     * @param timeout 发送消息超时时间
+     */
     public SendResult send(Message msg, MessageQueue mq, long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         long beginStartTime = System.currentTimeMillis();

@@ -664,7 +664,7 @@ public class MappedFile extends ReferenceResource {
      * 2. 关闭文件通道
      * 3. 删除物理文件
      *
-     * @param intervalForcibly 拒绝被销毁的最大存活时间
+     * @param intervalForcibly 拒绝被销毁的最大存活时间，现在的时间戳与第一次尝试shutdown的时间戳间隔如果大于intervalForcibly，那么及时当前文件还有引用，也强制销毁。
      *
      *
      */

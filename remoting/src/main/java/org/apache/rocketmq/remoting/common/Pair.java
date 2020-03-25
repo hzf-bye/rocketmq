@@ -22,7 +22,13 @@ package org.apache.rocketmq.remoting.common;
  * 所有该NettyRequestProcessor的处理逻辑都在该线程池中运行。
  */
 public class Pair<T1, T2> {
+    /**
+     * NettyRequestProcessor实例
+     */
     private T1 object1;
+    /**
+     * ExecuteService实例
+     */
     private T2 object2;
 
     public Pair(T1 object1, T2 object2) {

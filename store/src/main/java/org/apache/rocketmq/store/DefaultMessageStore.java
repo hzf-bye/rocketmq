@@ -84,7 +84,7 @@ public class DefaultMessageStore implements MessageStore {
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
 
     /**
-     * 消息队列文件，ConsumeQueue刷盘线程
+     * 消息消费队列数据刷盘，ConsumeQueue刷盘线程
      */
     private final FlushConsumeQueueService flushConsumeQueueService;
 
@@ -396,6 +396,10 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    /**
+     * 调用方看
+     * @see org.apache.rocketmq.broker.processor.SendMessageProcessor#sendMessage(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand, org.apache.rocketmq.broker.mqtrace.SendMessageContext, org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader)
+     */
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
 
         //如果Broker停止工作，将拒绝该消息写入
@@ -1600,15 +1604,29 @@ public class DefaultMessageStore implements MessageStore {
     class CleanCommitLogService {
 
         private final static int MAX_MANUAL_DELETE_FILE_TIMES = 20;
+        /**
+         * 通过系统参数-Drocketmq.broker.diskSpaceWarningLevelRatio设置，默认0.90。
+         * 如果磁盘分区使用率超过该值，将设置磁盘不可写，此时会拒绝新消息的写入。
+         */
         private final double diskSpaceWarningLevelRatio =
             Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceWarningLevelRatio", "0.90"));
 
+        /**
+         * 通过系统参数-Drocketmq.broker.diskSpaceCleanForciblyRatio，默认0.85。
+         * 如果磁盘分区使用率超过该值，建议立即执行过期文件删除，但不会拒绝新消息的写入。
+         */
         private final double diskSpaceCleanForciblyRatio =
             Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.85"));
         private long lastRedeleteTimestamp = 0;
 
+        /**
+         * 手工触发删除commitlog文件次数
+         */
         private volatile int manualDeleteFileSeveralTimes = 0;
 
+        /**
+         * 表示是否需要立即执行清除过期文件操作
+         */
         private volatile boolean cleanImmediately = false;
 
         public void excuteDeleteFilesManualy() {
@@ -1661,11 +1679,13 @@ public class DefaultMessageStore implements MessageStore {
              */
             boolean manualDelete = this.manualDeleteFileSeveralTimes > 0;
 
+            //满足上诉三个条件之一则执行删除逻辑
             if (timeup || spacefull || manualDelete) {
 
                 if (manualDelete)
                     this.manualDeleteFileSeveralTimes--;
 
+                //cleanAtOnce是否需要强制删除文件，
                 boolean cleanAtOnce = DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable() && this.cleanImmediately;
 
                 log.info("begin to delete before {} hours file. timeup: {} spacefull: {} manualDeleteFileSeveralTimes: {} cleanAtOnce: {}",
@@ -1713,14 +1733,19 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         private boolean isSpaceToDelete() {
+            //diskMaxUsedSpaceRatio表示commitlog、consumequeue文件所在分区的最大的使用量，如果超过该值，则需要立即清除过期文件
             double ratio = DefaultMessageStore.this.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100.0;
 
+            //表示是否需要立即执行清除过期文件操作
             cleanImmediately = false;
 
             {
                 String storePathPhysic = DefaultMessageStore.this.getMessageStoreConfig().getStorePathCommitLog();
+                //获取哦当前commitlog目录所在的磁盘分区的磁盘使用率
                 double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
+
                 if (physicRatio > diskSpaceWarningLevelRatio) {
+                    //如果当前磁盘使用率超过diskSpaceWarningLevelRatio，将设置磁盘不可写，应该立即启动过期文件的删除操作；
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskFull();
                     if (diskok) {
                         DefaultMessageStore.log.error("physic disk maybe full soon " + physicRatio + ", so mark disk full");
@@ -1728,20 +1753,24 @@ public class DefaultMessageStore implements MessageStore {
 
                     cleanImmediately = true;
                 } else if (physicRatio > diskSpaceCleanForciblyRatio) {
+                    //如果当前磁盘使用率超过diskSpaceCleanForciblyRatio，建议立即启动过期文件的删除操作；
                     cleanImmediately = true;
                 } else {
+                    //如果当前磁盘使用率低于diskSpaceCleanForciblyRatio，将恢复磁可写
                     boolean diskok = DefaultMessageStore.this.runningFlags.getAndMakeDiskOK();
                     if (!diskok) {
                         DefaultMessageStore.log.info("physic disk space OK " + physicRatio + ", so mark disk ok");
                     }
                 }
 
+                //如果当前磁盘使用率超过ratio，那么将返回true
                 if (physicRatio < 0 || physicRatio > ratio) {
                     DefaultMessageStore.log.info("physic disk maybe full soon, so reclaim space, " + physicRatio);
                     return true;
                 }
             }
 
+            //下面是consumeQueue文件的判断逻辑，同上。
             {
                 String storePathLogics = StorePathConfigHelper
                     .getStorePathConsumeQueue(DefaultMessageStore.this.getMessageStoreConfig().getStorePathRootDir());
@@ -1781,6 +1810,9 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     class CleanConsumeQueueService {
+        /**
+         * 上一次删除的consumeQueue文件中消息的最小物理偏移量即commitog文件中的偏移量
+         */
         private long lastPhysicalMinOffset = 0;
 
         public void run() {
@@ -1792,12 +1824,18 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         private void deleteExpiredFiles() {
+            //删除consumequeue物理文件的间隔，因为在一次清楚过程中，可能需要被删除的文件不止一个，该值指定两次删除文件的时间间隔。默认100ms。
             int deleteLogicsFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteConsumeQueueFilesInterval();
 
+            //获取commitlog文件最小偏移量。
             long minOffset = DefaultMessageStore.this.commitLog.getMinOffset();
             if (minOffset > this.lastPhysicalMinOffset) {
                 this.lastPhysicalMinOffset = minOffset;
 
+                /*
+                 * 当commitlog文件中的消息被删除后，consumeQueue文件对应的文件也需要删除，
+                 * 删除的逻辑就是当某个consumeQueue文件的最后一个条目表示的消息的物理便宜量小于当前commitlog文件中最小物理偏移量的消息都需要删除。
+                 */
                 ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueue>> tables = DefaultMessageStore.this.consumeQueueTable;
 
                 for (ConcurrentMap<Integer, ConsumeQueue> maps : tables.values()) {
@@ -1813,6 +1851,7 @@ public class DefaultMessageStore implements MessageStore {
                     }
                 }
 
+                //同样的逻辑删除索引文件
                 DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
             }
         }
@@ -1925,7 +1964,7 @@ public class DefaultMessageStore implements MessageStore {
 
         /**
          * {@link DefaultMessageStore#start()}赋值
-         * 表示ReputMessageService从哪个物理偏移量开始转发消息给ConsumeQuequ与INdexFile。
+         * 表示ReputMessageService从哪个物理偏移量开始转发消息给ConsumeQuequ与IndexFile。
          * 如果允许重复转发，reputFromOffset设置为CommitLog的提交指针。
          * 如果允许不重复转发，reputFromOffset设置为CommitLog的内存中最大偏移量即最大写指针。
          * {@link MessageStoreConfig#duplicationEnable} 是否允许重复转发，默认false。
@@ -1972,14 +2011,15 @@ public class DefaultMessageStore implements MessageStore {
             //因为再转发消息的过程中有可能来新消息，因此在转发完此次的消息后再次通过this.isCommitLogAvailable()判断是否有消息
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
 
-                //如果允许重复转发且开始转发消息物理偏移量大于等于CommitLog的提交指针，那么结束
+                //如果允许重复转发且开始转发消息物理偏移量大于等于CommitLog的提交指针，因为允许重复转发是从commitlog的提交指针开始转发，
+                //如果大于当前的提交指针说明已经转发了则不需要再三的转发。所以直接结束。
                 if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()
                     && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
                     break;
                 }
 
                 /*
-                 * 返回reputFromOffset偏移量开始的全部有效数据(CommitLog文件)，然后循环读取每一条消息。
+                 * 返回reputFromOffset偏移量所在的MappedFile文件中reputFromOffset偏移量开始的全部有效数据(CommitLog文件)，然后循环读取每一条消息。
                  * 默认情况下reputFromOffset是CommitLog中内存中的最大偏移量，Broker启动时初始化，那说说明此偏移量之前的
                  * 消息肯定已经转发了，那么从此偏移量之后的消息还没转发，比如Broker启动后又来了消息。
                  * 所以要找之后的新消息并转发给ConsumeQueue、IndexFile

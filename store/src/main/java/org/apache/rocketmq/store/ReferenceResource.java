@@ -38,7 +38,7 @@ public abstract class ReferenceResource {
     protected volatile boolean cleanupOver = false;
 
     /**
-     * 初次关闭的时间戳
+     * 初次尝试关闭的时间戳
      */
     private volatile long firstShutdownTimestamp = 0;
 

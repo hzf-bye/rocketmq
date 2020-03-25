@@ -958,7 +958,6 @@ public class CommitLog {
 
     /**
      * 获取当前commitlog目录中最小偏移量。
-     * @return
      */
     public long getMinOffset() {
         //获取目录下的第一个文件。

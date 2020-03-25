@@ -107,11 +107,15 @@ public class MessageStoreConfig {
     private int cleanResourceInterval = 10000;
     // CommitLog removal interval
     /**
-     * 删除物理文件的间隔，因为在一次清楚过程中，可能需要被删除的文件不止一个，该值指定两次删除文件的时间间隔。
+     * 删除commitlog物理文件的间隔，因为在一次清楚过程中，可能需要被删除的文件不止一个，该值指定两次删除文件的时间间隔。
      * 默认100ms
      */
     private int deleteCommitLogFilesInterval = 100;
     // ConsumeQueue removal interval
+    /**
+     * 删除consumequeue物理文件的间隔，因为在一次清楚过程中，可能需要被删除的文件不止一个，该值指定两次删除文件的时间间隔。
+     * 默认100ms
+     */
     private int deleteConsumeQueueFilesInterval = 100;
     /**
      * 在清除过期文件时。如果该文件被其它线程所占用（引用次数大于0，比如读取消息），此时会阻止此次删除任务，同时再第一次删除时记录当前时间戳，
@@ -132,11 +136,9 @@ public class MessageStoreConfig {
     @ImportantField
     private String deleteWhen = "04";
     /**
-     * 磁盘空间是否充足，如果磁盘空间不充足，则返回true。
-     * 表示应该触发删除操作。
-     * 如果文件所在分区使用率大于0.75（默认值）
-     * 则表示磁盘空间不充足
+     * 表示commitlog、consumequeue文件所在分区的最大的使用量，如果超过该值，则需要立即清除过期文件
      * @see DefaultMessageStore.CleanCommitLogService#deleteExpiredFiles()
+     * @see DefaultMessageStore.CleanCommitLogService#isSpaceToDelete()
      */
     private int diskMaxUsedSpaceRatio = 75;
     // The number of hours to keep a log file before deleting it (in hours)
@@ -255,6 +257,10 @@ public class MessageStoreConfig {
      */
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private long flushDelayOffsetInterval = 1000 * 10;
+    /**
+     * 当磁盘使用率超过阈值是否需要强制删除commitlog文件，默认值true，即需要
+     * @see DefaultMessageStore.CleanCommitLogService#deleteExpiredFiles()
+     */
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
     private boolean warmMapedFileEnable = false;

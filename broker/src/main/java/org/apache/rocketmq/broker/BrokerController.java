@@ -531,6 +531,9 @@ public class BrokerController {
     public void registerProcessor() {
         /**
          * SendMessageProcessor
+         * 发送消息处理器，Producer发送的消息在
+         * @see SendMessageProcessor#processRequest(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+         * 中被接收到，在继续后续的存储，比如写入内存中，刷盘等。
          */
         SendMessageProcessor sendProcessor = new SendMessageProcessor(this);
         sendProcessor.registerSendMessageHook(sendMessageHookList);

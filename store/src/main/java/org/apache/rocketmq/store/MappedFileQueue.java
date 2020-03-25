@@ -39,6 +39,9 @@ public class MappedFileQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final InternalLogger LOG_ERROR = InternalLoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
+    /**
+     * 每次删除的最大文件数
+     */
     private static final int DELETE_FILES_BATCH_MAX = 10;
 
     /**
@@ -421,10 +424,19 @@ public class MappedFileQueue {
         }
     }
 
+    /**
+     * 根据文件允许的最大存活时间删除commitlog文件
+     * @param expiredTime {@link org.apache.rocketmq.store.config.MessageStoreConfig#fileReservedTime}
+     * @param deleteFilesInterval {@link MessageStoreConfig#deleteCommitLogFilesInterval}
+     * @param intervalForcibly {@link org.apache.rocketmq.store.config.MessageStoreConfig#destroyMapedFileIntervalForcibly}
+     * @param cleanImmediately 是否强制删除文件（当磁盘使用超过设定的阈值）
+     * @return 清理的文件数
+     */
     public int deleteExpiredFileByTime(final long expiredTime,
         final int deleteFilesInterval,
         final long intervalForcibly,
         final boolean cleanImmediately) {
+        //返回所有的mappedFile文件
         Object[] mfs = this.copyMappedFiles(0);
 
         if (null == mfs)
@@ -434,18 +446,24 @@ public class MappedFileQueue {
         int deleteCount = 0;
         List<MappedFile> files = new ArrayList<MappedFile>();
         if (null != mfs) {
+            //从第一个文件遍历到倒数第二个文件。
             for (int i = 0; i < mfsLength; i++) {
                 MappedFile mappedFile = (MappedFile) mfs[i];
+                //计算文件最大存活时间（=文件最后一次更新时间+文件存活时间（默认72小时））
                 long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
+                //如果当前时间大于文件文件最大存活时间，或者需要强制删除（当磁盘使用超过设定的阈值）则清除MappedFile占有的相关资源。
                 if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
                     if (mappedFile.destroy(intervalForcibly)) {
+                        //文件清除成功，加入待删除列表且deleteCount+1
                         files.add(mappedFile);
                         deleteCount++;
 
+                        //如果删除的文件大小超过最大值，则不再删除。
                         if (files.size() >= DELETE_FILES_BATCH_MAX) {
                             break;
                         }
 
+                        //继续执行删除下一个文件的操作时，先睡眠deleteFilesIntervalms
                         if (deleteFilesInterval > 0 && (i + 1) < mfsLength) {
                             try {
                                 Thread.sleep(deleteFilesInterval);
@@ -467,7 +485,15 @@ public class MappedFileQueue {
         return deleteCount;
     }
 
+
+    /**
+     * 根据CommitLog文件中的消息物理偏移量删除consumeQueue中的文件
+     * @param offset CommitLog文件中的消息物理偏移量
+     * @param unitSize 目前consumeQueue中的文件的一个条目大小，20字节
+     * @return
+     */
     public int deleteExpiredFileByOffset(long offset, int unitSize) {
+        //返回所有的mappedFile文件
         Object[] mfs = this.copyMappedFiles(0);
 
         List<MappedFile> files = new ArrayList<MappedFile>();
@@ -476,13 +502,17 @@ public class MappedFileQueue {
 
             int mfsLength = mfs.length - 1;
 
+            //从第一个文件遍历到倒数第二个文件。
             for (int i = 0; i < mfsLength; i++) {
                 boolean destroy;
                 MappedFile mappedFile = (MappedFile) mfs[i];
+                //获取当前文件最后一个条目的物理偏移量
                 SelectMappedBufferResult result = mappedFile.selectMappedBuffer(this.mappedFileSize - unitSize);
                 if (result != null) {
+                    //获取当前条目消息的物理偏移量。
                     long maxOffsetInLogicQueue = result.getByteBuffer().getLong();
                     result.release();
+                    //当前文件最有一个条目的消息的物理偏移量 < offset则表示需要清理
                     destroy = maxOffsetInLogicQueue < offset;
                     if (destroy) {
                         log.info("physic min offset " + offset + ", logics in current mappedFile max offset "
@@ -496,6 +526,7 @@ public class MappedFileQueue {
                     break;
                 }
 
+                //清理文件
                 if (destroy && mappedFile.destroy(1000 * 60)) {
                     files.add(mappedFile);
                     deleteCount++;
@@ -608,7 +639,7 @@ public class MappedFileQueue {
 
                     /*
                      * 如果根据上面算法还未找到则直接遍历mappedFile文件
-                     * 什么情况下会来到这儿，目前还不知道？ 在我看来mappedFile文件偏移量是个等差数组，公差为this.mappedFileSize
+                     * 什么情况下会来到这儿，目前还不知道？ 在我看来mappedFile文件名是个等差数组，公差为this.mappedFileSize
                      * 估计出现某种异常情况才会走到这里？
                      */
                     for (MappedFile tmpMappedFile : this.mappedFiles) {

@@ -104,6 +104,11 @@ public class IndexService {
         return true;
     }
 
+    /**
+     * 根据消息物理偏移量删除索引文件。
+     *
+     * @param offset commitLog文件中的消息物理偏移量
+     */
     public void deleteExpiredFile(long offset) {
         Object[] files = null;
         try {
@@ -112,6 +117,7 @@ public class IndexService {
                 return;
             }
 
+            //如果第一个索引文件存储的最大的消息便宜量 < offset，那么标识肯定有索引文件清理的，遍历索引文件
             long endPhyOffset = this.indexFileList.get(0).getEndPhyOffset();
             if (endPhyOffset < offset) {
                 files = this.indexFileList.toArray();
@@ -124,6 +130,7 @@ public class IndexService {
 
         if (files != null) {
             List<IndexFile> fileList = new ArrayList<IndexFile>();
+            //遍历索引文件，从第一个到倒数第二个
             for (int i = 0; i < (files.length - 1); i++) {
                 IndexFile f = (IndexFile) files[i];
                 if (f.getEndPhyOffset() < offset) {
@@ -137,6 +144,10 @@ public class IndexService {
         }
     }
 
+    /**
+     * 清除索引文件
+     * @param files 需要清除索引文件列表
+     */
     private void deleteExpiredFile(List<IndexFile> files) {
         if (!files.isEmpty()) {
             try {

@@ -32,6 +32,9 @@ public class RunningFlags {
      */
     private static final int WRITE_INDEX_FILE_ERROR_BIT = 1 << 3;
 
+    /**
+     * 磁盘满标志位，将使磁盘不可写
+     */
     private static final int DISK_FULL_BIT = 1 << 4;
 
     private volatile int flagBits = 0;
