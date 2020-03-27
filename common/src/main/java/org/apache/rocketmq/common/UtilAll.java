@@ -247,7 +247,7 @@ public class UtilAll {
         return d;
     }
 
-    public static void main(String[] args) {
+    public static void main1(String[] args) {
 
         byte[] bytes = string2bytes("C0A8006B00002A9F0000000000000CA3");
         ByteBuffer byteBuffer = ByteBuffer.allocate(16);
