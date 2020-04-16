@@ -20,6 +20,7 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
@@ -40,6 +41,11 @@ public class SendMessageRequestHeader implements CommandCustomHeader {
     private String topic;
     /**
      * 默认创建主题key
+     * 如果在发送消息时 topic 没有被事先创建，且
+     * @see BrokerConfig#autoCreateTopicEnable 为true.
+     * 那么系统会自动创建此topic。且topic属性继承自defaultTopic
+     * 而defaultTopic的创建是在Broker启动时创建的
+     * @see org.apache.rocketmq.broker.topic.TopicConfigManager#TopicConfigManager(org.apache.rocketmq.broker.BrokerController)
      */
     @CFNotNull
     private String defaultTopic;

@@ -89,8 +89,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private final DefaultMQProducer defaultMQProducer;
     /**
      * topic路由信息
+     * {@link MQClientInstance#updateTopicRouteInfoFromNameServer()} 默认每30s一次的定时任务
      * {@link MQClientInstance#updateTopicRouteInfoFromNameServer(java.lang.String, boolean, org.apache.rocketmq.client.producer.DefaultMQProducer)}
      * 中更新
+     *
      */
     private final ConcurrentMap<String/* topic */, TopicPublishInfo> topicPublishInfoTable =
         new ConcurrentHashMap<String, TopicPublishInfo>();

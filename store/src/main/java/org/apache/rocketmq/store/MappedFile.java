@@ -69,7 +69,8 @@ import sun.nio.ch.DirectBuffer;
  * 而写入消息时{@link MappedFile#appendMessagesInner(org.apache.rocketmq.common.message.MessageExt, org.apache.rocketmq.store.AppendMessageCallback)}
  * 方法中如果开启了transientStorePoolEnable机制那么写入的是writeBuffer
  *
- * 所以如果开启transientStorePoolEnable机制，是不是有了读写分离的效果，先写入writerBuffer中，读却是从mappedByteBuffer中读取。
+ * 所以如果开启transientStorePoolEnable机制{@link org.apache.rocketmq.store.config.MessageStoreConfig#isTransientStorePoolEnable()}，
+ * 是不是有了读写分离的效果，先写入writerBuffer中，读却是从mappedByteBuffer中读取。
  *
  * 通常有如下两种方式进行读写：
  *

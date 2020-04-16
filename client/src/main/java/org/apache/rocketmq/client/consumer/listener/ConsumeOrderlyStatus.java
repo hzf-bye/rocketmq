@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.client.consumer.listener;
 
+import org.apache.rocketmq.client.impl.consumer.ConsumeMessageOrderlyService;
+
 public enum ConsumeOrderlyStatus {
     /**
      * Success consumption
@@ -23,11 +25,13 @@ public enum ConsumeOrderlyStatus {
     SUCCESS,
     /**
      * Rollback consumption(only for binlog consumption)
+     * @see ConsumeMessageOrderlyService#processConsumeResult(java.util.List, org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus, org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext, org.apache.rocketmq.client.impl.consumer.ConsumeMessageOrderlyService.ConsumeRequest)
      */
     @Deprecated
     ROLLBACK,
     /**
      * Commit offset(only for binlog consumption)
+     * @see ConsumeMessageOrderlyService#processConsumeResult(java.util.List, org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus, org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext, org.apache.rocketmq.client.impl.consumer.ConsumeMessageOrderlyService.ConsumeRequest)
      */
     @Deprecated
     COMMIT,

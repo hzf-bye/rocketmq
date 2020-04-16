@@ -37,15 +37,31 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Local storage implementation
+ * 广播模式消息消费进度存储在本地
  */
 public class LocalFileOffsetStore implements OffsetStore {
+    /**
+     * 消息进度存储目录 可以通过 -Drocketmq.client.localOffsetStoreDir指定
+     */
     public final static String LOCAL_OFFSET_STORE_DIR = System.getProperty(
         "rocketmq.client.localOffsetStoreDir",
         System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
     private final static InternalLogger log = ClientLogger.getLog();
+    /**
+     * 消息客户端
+     */
     private final MQClientInstance mQClientFactory;
+    /**
+     * 消息消费组
+     */
     private final String groupName;
+    /**
+     * 消息进度存储文件
+     */
     private final String storePath;
+    /**
+     * 消息消费进度
+     */
     private ConcurrentMap<MessageQueue, AtomicLong> offsetTable =
         new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
@@ -58,6 +74,9 @@ public class LocalFileOffsetStore implements OffsetStore {
             "offsets.json";
     }
 
+    /**
+     * 从消息进度文件加载消息进度到内存
+     */
     @Override
     public void load() throws MQClientException {
         OffsetSerializeWrapper offsetSerializeWrapper = this.readLocalOffset();
@@ -128,6 +147,11 @@ public class LocalFileOffsetStore implements OffsetStore {
         return -1;
     }
 
+    /**
+     * 持久化指定消息队列进度到磁盘
+     * @see MQClientInstance#persistAllConsumerOffset()
+     * MQClientInstance中的定时任务，默认每5秒持久化一次
+     */
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
         if (null == mqs || mqs.isEmpty())

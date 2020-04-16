@@ -94,7 +94,7 @@ public class RemotingCommand {
     private int code;
     private LanguageCode language = LanguageCode.JAVA;
     /**
-     * 版本号
+     * 当前 RocketMq 版本号
      */
     private int version = 0;
     /**
@@ -109,6 +109,7 @@ public class RemotingCommand {
     private int flag = 0;
     /**
      * 描述
+     * @see org.apache.rocketmq.store.GetMessageStatus
      */
     private String remark;
     /**

@@ -16,8 +16,13 @@
  */
 package org.apache.rocketmq.store;
 
+import org.apache.rocketmq.common.message.MessageConst;
+
 import java.util.Map;
 
+/**
+ * 存储一条消息的所有数据，不包含body
+ */
 public class DispatchRequest {
 
     /**
@@ -38,7 +43,8 @@ public class DispatchRequest {
     private final int msgSize;
     /**
      * 消息tag的hashCode
-     * 若是延时消息tagsCode存储的是消息存储时间戳+延时时间后的时间戳
+     * 若是延时消息tagsCode存储的是 消息存储时间戳+消息延时级别对应的延迟时间
+     * 意味着当 当前时间 > tagsCode时，那么说明延迟消息可以被消费者消费了。
      * {@link org.apache.rocketmq.store.CommitLog#checkMessageAndReturnSize(java.nio.ByteBuffer, boolean, boolean)}
      */
     private final long tagsCode;
@@ -55,6 +61,7 @@ public class DispatchRequest {
     private final long consumeQueueOffset;
     /**
      * 消息索引key，多个key用空格隔开
+     * @see MessageConst#PROPERTY_KEYS
      */
     private final String keys;
     /**
@@ -64,6 +71,7 @@ public class DispatchRequest {
     /**
      * 消息唯一键
      * {@link MessageClientIDSetter#setUniqID(org.apache.rocketmq.common.message.Message)}
+     * {@link org.apache.rocketmq.common.message.MessageClientIDSetter#createUniqID()}
      */
     private final String uniqKey;
 

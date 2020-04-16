@@ -383,8 +383,8 @@ public class MappedFileQueue {
     }
 
     /**
-     * 获取存储文件最大偏移量。
-     * 返回最后一个MappedFile的fileFromOffset加上MappedFile文件当前写指针。
+     * 获取存储文件提交的最大的可读的偏移量。
+     * 返回最后一个MappedFile的fileFromOffset加上MappedFile文件当前提交指针指针。
      */
     public long getMaxOffset() {
         MappedFile mappedFile = getLastMappedFile();

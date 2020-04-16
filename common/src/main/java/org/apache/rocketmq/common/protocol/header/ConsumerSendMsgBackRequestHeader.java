@@ -23,16 +23,47 @@ import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class ConsumerSendMsgBackRequestHeader implements CommandCustomHeader {
+
+    /**
+     * 消息物理偏移量
+     * commitLog文件中的物理偏移量
+     */
     @CFNotNull
     private Long offset;
     @CFNotNull
+    /**
+     * 消费组名
+     */
     private String group;
+
+    /**
+     * 消息延迟级别
+     * @see org.apache.rocketmq.store.config.MessageStoreConfig#messageDelayLevel
+     * delayLevel = 1 标识延迟5s
+     *
+     * 此level来源于
+     * @see org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext#delayLevelWhenNextConsume
+     * @see org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyService#sendMessageBack(org.apache.rocketmq.common.message.MessageExt, org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext)
+     */
     @CFNotNull
     private Integer delayLevel;
+
+    /**
+     * 消息id
+     */
     private String originMsgId;
+
+    /**
+     * 消息topic
+     */
     private String originTopic;
     @CFNullable
     private boolean unitMode = false;
+
+    /**
+     * 最大重新消费次数，默认为16次
+     * @see org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl#getMaxReconsumeTimes()
+     */
     private Integer maxReconsumeTimes;
 
     @Override

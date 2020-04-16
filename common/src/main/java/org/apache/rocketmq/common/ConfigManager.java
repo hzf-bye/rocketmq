@@ -68,8 +68,10 @@ public abstract class ConfigManager {
     public abstract void decode(final String jsonString);
 
     public synchronized void persist() {
+        //将当前ConfigManager缓存的数据，序列化成json格式
         String jsonString = this.encode(true);
         if (jsonString != null) {
+            //获取当前ConfigManager的存储文件名字
             String fileName = this.configFilePath();
             try {
                 MixAll.string2File(jsonString, fileName);

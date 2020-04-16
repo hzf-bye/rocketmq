@@ -23,6 +23,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import org.apache.rocketmq.broker.processor.ClientManageProcessor;
+import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -36,6 +39,14 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 public class ConsumerManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
+    /**
+     * 消费者启动时会向Broker发送心跳包，心跳包中包含消费者信息。
+     * @see MQClientInstance#sendHeartbeatToAllBroker()
+     * @see ClientManageProcessor#heartBeat(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+     * @see ConsumerManager#scanNotActiveChannel()
+     * Broker启动时会定时执行scanNotActiveChannel方法，扫描所有的客户端是否活跃，
+     * 如果120s后该客户端还未通过sendHeartbeatToAllBroker发送心跳包则移除该客户端
+     */
     private final ConcurrentMap<String/* Group */, ConsumerGroupInfo> consumerTable =
         new ConcurrentHashMap<String, ConsumerGroupInfo>(1024);
     private final ConsumerIdsChangeListener consumerIdsChangeListener;
@@ -106,9 +117,11 @@ public class ConsumerManager {
             consumerGroupInfo = prev != null ? prev : tmp;
         }
 
+        //更新channel，返回true表示有新的客户端连接
         boolean r1 =
             consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel,
                 consumeFromWhere);
+        //更新topic订阅信息，返回true表示消费组有订阅新的topic
         boolean r2 = consumerGroupInfo.updateSubscription(subList);
 
         if (r1 || r2) {

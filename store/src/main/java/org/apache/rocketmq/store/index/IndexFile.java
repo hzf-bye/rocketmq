@@ -141,7 +141,7 @@ public class IndexFile {
      * @return
      */
     public boolean putKey(final String key, final long phyOffset, final long storeTimestamp) {
-        //如果当前已经使用的条目大于最大条目数是，返回false，表示当前索引文件已经写满。
+        //如果当前已经使用的条目大于等于最大条目数是，返回false，表示当前索引文件已经写满。
         if (this.indexHeader.getIndexCount() < this.indexNum) {
             //根据key计算出hashCode，之所以存储使用hashcode而不是用key，是为了将Index条目设计成定长结构，方面检索与定位条目。
             int keyHash = indexKeyHashMethod(key);

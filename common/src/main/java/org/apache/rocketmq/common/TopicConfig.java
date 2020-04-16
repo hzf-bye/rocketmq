@@ -35,7 +35,8 @@ public class TopicConfig {
      */
     private int writeQueueNums = defaultWriteQueueNums;
     /**
-     * 权限码
+     * 权限码，默认topic对应的消息队列都有读写权限
+     * 特殊的，比如DLQ死信队列 只有写权限。
      */
     private int perm = PermName.PERM_READ | PermName.PERM_WRITE;
 

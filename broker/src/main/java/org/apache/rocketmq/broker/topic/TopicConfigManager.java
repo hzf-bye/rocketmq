@@ -28,6 +28,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.processor.ClientManageProcessor;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.DataVersion;
@@ -46,6 +47,19 @@ public class TopicConfigManager extends ConfigManager {
     private static final long LOCK_TIMEOUT_MILLIS = 3000;
     private transient final Lock lockTopicConfigTable = new ReentrantLock();
 
+    /**
+     * key topic
+     * @see ConfigManager#persist()'
+     * @see BrokerController#shutdown()
+     * 在Broker关闭的时候会持久化消费队列消费进度至磁盘中
+     * @see ConfigManager#load()
+     * broker启动时从磁盘加载
+     *
+     * @see ClientManageProcessor#heartBeat(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+     * @see TopicConfigManager#createTopicInSendMessageBackMethod(java.lang.String, int, int, int)
+     * 其中重试topic的缓存是在客户端与Broker发送心跳的时候创建
+     *
+     */
     private final ConcurrentMap<String, TopicConfig> topicConfigTable =
         new ConcurrentHashMap<String, TopicConfig>(1024);
     private final DataVersion dataVersion = new DataVersion();
@@ -68,6 +82,7 @@ public class TopicConfigManager extends ConfigManager {
         }
         {
             // MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC
+            //如果允许自动创建topic
             if (this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
                 String topic = MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC;
                 TopicConfig topicConfig = new TopicConfig(topic);
@@ -156,8 +171,6 @@ public class TopicConfigManager extends ConfigManager {
                     if (topicConfig != null)
                         return topicConfig;
 
-                    //
-                    //
                     /**
                      * 如果没有则通过默认topic key(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)获取
                      * defaultTopicConfig在{@link TopicConfigManager#TopicConfigManager(org.apache.rocketmq.broker.BrokerController)}构造方法中创建
@@ -165,8 +178,12 @@ public class TopicConfigManager extends ConfigManager {
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);
                     if (defaultTopicConfig != null) {
                         if (defaultTopic.equals(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
-                            //defaultTopicConfig在创建的时候被赋予的权限是 PermName.PERM_INHERIT | PermName.PERM_READ | PermName.PERM_WRITE;
-                            // 如果此时不允许自动创建topic，那么收回defaultTopicConfig的允许被继承权限。
+                            //
+                            /**
+                             * defaultTopicConfig在创建的时候被赋予的权限是 PermName.PERM_INHERIT | PermName.PERM_READ | PermName.PERM_WRITE;
+                             * @see TopicConfigManager#TopicConfigManager(org.apache.rocketmq.broker.BrokerController)
+                             * 如果此时不允许自动创建topic，那么收回defaultTopicConfig的允许被继承权限。
+                             */
                             if (!this.brokerController.getBrokerConfig().isAutoCreateTopicEnable()) {
                                 defaultTopicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
                             }

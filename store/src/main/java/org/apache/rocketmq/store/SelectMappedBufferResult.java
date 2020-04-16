@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
 public class SelectMappedBufferResult {
 
     /**
-     * 当前文件的物理偏移量
+     * 读取当前文件的物理偏移量
      */
     private final long startOffset;
 
@@ -37,7 +37,7 @@ public class SelectMappedBufferResult {
     private int size;
 
     /**
-     * 对应CommitLog中的一个文件
+     * 对应CommitLog中的一个文件或者ConsumeQueue中的一个文件
      */
     private MappedFile mappedFile;
 

@@ -30,6 +30,8 @@ import sun.nio.ch.DirectBuffer;
 
 /**
  * 当{@link org.apache.rocketmq.store.config.MessageStoreConfig#transientStorePoolEnable}为true时
+ * 且是异步刷盘且是master broker
+ * @see org.apache.rocketmq.store.config.MessageStoreConfig#isTransientStorePoolEnable()
  * 启用“读写”分离，消息发送时消息先追加到DirectByteBuffer(堆外内存)中，然后在异步刷盘机制下，
  * 会将DirectByteBuffer中的内容提交到PageCache，然后刷写到磁盘。消息拉取时，直接从PageCache中拉取，实现了读写分离，减轻了PageCaceh的压力。
  *

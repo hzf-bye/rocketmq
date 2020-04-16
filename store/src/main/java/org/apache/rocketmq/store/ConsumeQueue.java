@@ -80,6 +80,9 @@ public class ConsumeQueue {
      * 消息消费队列文件中第一个消息的逻辑偏移量
      * 这里指的是ConsumeQueue文件中的偏移量
      * 即第一个文件的第一个消息的物理偏移量
+     * @see ConsumeQueue#correctMinOffset(long)
+     * 在Broker启动时或者删除失效的ConsumeQueue文件后都会更新此值，
+     * 小于此物理偏移量的消息为无效消息。
      */
     private volatile long minLogicOffset = 0;
     private ConsumeQueueExt consumeQueueExt = null;
@@ -193,7 +196,7 @@ public class ConsumeQueue {
     }
 
     /**
-     * 根据消息存储时间来查找
+     * 根据消息存储时间来查找消息在ConsumeQueue文件中的偏移量
      */
     public long getOffsetInQueueByTime(final long timestamp) {
         //首先根据时间戳定位到物理文件
@@ -201,7 +204,7 @@ public class ConsumeQueue {
         if (mappedFile != null) {
             long offset = 0;
             //利用二分查找来加速检索
-            // 计算最低查找偏移量，取消息队列最小偏移量与文件注销偏移量二者中差为最小偏移量low
+            // 计算最低查找偏移量，取消息队列最小偏移量与文件最小偏移量二者中差为最小偏移量low
             int low = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
@@ -211,6 +214,7 @@ public class ConsumeQueue {
             SelectMappedBufferResult sbr = mappedFile.selectMappedBuffer(0);
             if (null != sbr) {
                 ByteBuffer byteBuffer = sbr.getByteBuffer();
+                //获取最后一条消息的起始物理偏移量
                 high = byteBuffer.limit() - CQ_STORE_UNIT_SIZE;
                 try {
                     while (high >= low) {
@@ -241,7 +245,7 @@ public class ConsumeQueue {
                             targetOffset = midOffset;
                             break;
                         } else if (storeTime > timestamp) {
-                            //如果大于说明待查找消息offset小于midOffset。继续向后半部分折半查找
+                            //如果大于说明待查找消息offset小于midOffset。继续向前半部分折半查找
                             high = midOffset - CQ_STORE_UNIT_SIZE;
                             rightOffset = midOffset;
                             rightIndexValue = storeTime;
@@ -634,7 +638,10 @@ public class ConsumeQueue {
      */
     public long rollNextFile(final long index) {
         int mappedFileSize = this.mappedFileSize;
+        //获取一个文件所包含的index
         int totalUnitsInFile = mappedFileSize / CQ_STORE_UNIT_SIZE;
+        //当前文件的index加上数量就定位到下一个文件同样的index处了，再减去index % totalUnitsInFile即相对于文件头多出来的index数量
+        //则就定位到下一个文件的起始index处
         return index + totalUnitsInFile - index % totalUnitsInFile;
     }
 

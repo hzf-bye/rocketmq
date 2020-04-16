@@ -69,6 +69,8 @@ public abstract class NettyRemotingAbstract {
 
     /**
      * This map caches all on-going requests.
+     * key-客户端请求唯一编号{@link RemotingCommand#opaque}
+     * 异步请求时服务端通过此编号，找到请求的ResponseFuture，执行回调函数
      */
     protected final ConcurrentMap<Integer /* opaque */, ResponseFuture> responseTable =
         new ConcurrentHashMap<Integer, ResponseFuture>(256);

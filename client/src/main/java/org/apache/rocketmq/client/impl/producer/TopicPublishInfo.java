@@ -43,7 +43,7 @@ public class TopicPublishInfo {
      */
     private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
     /**
-     * 没选择一次消息队列，该值会自增1，如果大于Integer.MAX_VALUE则重置为0，用于选择消息队列。
+     * 每选择一次消息队列，该值会自增1，如果大于Integer.MAX_VALUE则重置为0，用于选择消息队列。
      * 负责均衡策略的索引
      */
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();

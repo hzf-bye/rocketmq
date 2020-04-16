@@ -21,6 +21,9 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.rocketmq.broker.processor.PullMessageProcessor;
+import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.filter.FilterFactory;
 import org.apache.rocketmq.filter.expression.Expression;
 import org.apache.rocketmq.filter.util.BloomFilterData;
 
@@ -28,13 +31,31 @@ import java.util.Collections;
 
 /**
  * Filter data of consumer.
+ *
  */
 public class ConsumerFilterData {
 
+    /**
+     * 消费组
+     */
     private String consumerGroup;
+    /**
+     * 主题
+     */
     private String topic;
+    /**
+     * 消息过滤表达式
+     */
     private String expression;
+    /**
+     * 消息过滤类型
+     * @see ExpressionType
+     */
     private String expressionType;
+    /**
+     * SQL92表达式时
+     * @see ConsumerFilterManager#build(java.lang.String, java.lang.String, java.lang.String, java.lang.String, long)
+     */
     private transient Expression compiledExpression;
     private long bornTime;
     private long deadTime = 0;

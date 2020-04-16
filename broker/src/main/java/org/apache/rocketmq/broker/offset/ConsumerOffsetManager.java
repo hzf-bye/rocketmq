@@ -26,6 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.processor.PullMessageProcessor;
+import org.apache.rocketmq.client.consumer.PullCallback;
+import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -37,6 +40,25 @@ public class ConsumerOffsetManager extends ConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final String TOPIC_GROUP_SEPARATOR = "@";
 
+    /**
+     * key topic@group
+     * value中：key-队列id value是consumeQueue中的偏移量
+     * 1.
+     * @see PullMessageProcessor#processRequest(io.netty.channel.Channel, org.apache.rocketmq.remoting.protocol.RemotingCommand, boolean)
+     * 2.
+     * @see DefaultMQPushConsumerImpl#pullMessage(org.apache.rocketmq.client.impl.consumer.PullRequest)
+     * @see PullCallback#onSuccess(org.apache.rocketmq.client.consumer.PullResult)
+     * 比如消费者拉取消息返回结果为 OFFSET_ILLEGAL 此时会向Broker 持久化当前consumeGroup、topic、queueId下的消息消费进度
+     *
+     * @see BrokerController#initialize()
+     * broker启动后妹隔10s中持久话一次
+     * @see ConfigManager#persist()
+     * @see BrokerController#shutdown()
+     * 在Broker关闭的时候会持久化消费队列消费进度至磁盘中
+     * @see ConfigManager#load()
+     * broker启动时从磁盘加载
+     *
+     */
     private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<String, ConcurrentMap<Integer, Long>>(512);
 

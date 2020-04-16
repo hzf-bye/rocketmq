@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.common.message;
 
+import org.apache.rocketmq.common.MixAll;
+
 import java.util.HashSet;
 
 public class MessageConst {
@@ -23,35 +25,43 @@ public class MessageConst {
     /**
      * 消息扩展属性
      */
+
     /**
-     * 消息TAG，用于消息过滤
+     * Message索引键，多个用空格隔开，RocketMQ可以根据这些key快速检索到消息
      */
     public static final String PROPERTY_KEYS = "KEYS";
     /**
-     * Message索引键，多个用空格隔开，RocketMQ可以根据这些key快速检索到消息
+     * 消息TAG，用于消息过滤
      */
     public static final String PROPERTY_TAGS = "TAGS";
     /**
      * 如果是同步刷盘的策略是否等消息存储完成后再返回结果
      * @see org.apache.rocketmq.store.CommitLog#handleDiskFlush(org.apache.rocketmq.store.AppendMessageResult, org.apache.rocketmq.store.PutMessageResult, org.apache.rocketmq.common.message.MessageExt)
-     *
+     * @see Message#isWaitStoreMsgOK() 未设置默的话默认true
      */
     public static final String PROPERTY_WAIT_STORE_MSG_OK = "WAIT";
     /**
      * 消息延迟级别，用于定时消息或者重试消息。
+     * {@link org.apache.rocketmq.store.config.MessageStoreConfig#messageDelayLevel}
      */
     public static final String PROPERTY_DELAY_TIME_LEVEL = "DELAY";
+
+    /**
+     * 当消息是重试消息时，消息的此属性存储消息的真实的topic
+     * @see org.apache.rocketmq.broker.processor.SendMessageProcessor#consumerSendMsgBack(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+     */
     public static final String PROPERTY_RETRY_TOPIC = "RETRY_TOPIC";
 
     /**
-     * 当时延迟消息时需要将消息的真实topic存储到消息的扩展属性中，
+     * 当是延迟消息时需要将消息的真实topic存储到消息的扩展属性中，
      * PROPERTY_REAL_TOPIC为对应的key
      * {@link org.apache.rocketmq.store.CommitLog#putMessage(org.apache.rocketmq.store.MessageExtBrokerInner)}
      */
     public static final String PROPERTY_REAL_TOPIC = "REAL_TOPIC";
     /**
-     * 当时延迟消息时需要将消息的真实队列ID存储到消息的扩展属性中，
+     * 当是延迟消息时需要将消息的真实队列ID存储到消息的扩展属性中，
      * PROPERTY_REAL_QUEUE_ID为对应的key
+     * @see org.apache.rocketmq.store.CommitLog#putMessage(org.apache.rocketmq.store.MessageExtBrokerInner)
      */
     public static final String PROPERTY_REAL_QUEUE_ID = "REAL_QID";
     /**
@@ -60,9 +70,20 @@ public class MessageConst {
      */
     public static final String PROPERTY_TRANSACTION_PREPARED = "TRAN_MSG";
     public static final String PROPERTY_PRODUCER_GROUP = "PGROUP";
+    /**
+     * 消息消费队列文件（ConsumeQueue）中的最小偏移量
+     * @see org.apache.rocketmq.client.impl.consumer.PullAPIWrapper#processPullResult(org.apache.rocketmq.common.message.MessageQueue, org.apache.rocketmq.client.consumer.PullResult, org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData)
+     */
     public static final String PROPERTY_MIN_OFFSET = "MIN_OFFSET";
+    /**
+     * 消息消费队列文件（ConsumeQueue）中的最大偏移量
+     * @see org.apache.rocketmq.client.impl.consumer.PullAPIWrapper#processPullResult(org.apache.rocketmq.common.message.MessageQueue, org.apache.rocketmq.client.consumer.PullResult, org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData)
+     */
     public static final String PROPERTY_MAX_OFFSET = "MAX_OFFSET";
     public static final String PROPERTY_BUYER_ID = "BUYER_ID";
+    /**
+     * 重试消息时，新创建一个消息，此消息的属性保存原先消息的msgId
+     */
     public static final String PROPERTY_ORIGIN_MESSAGE_ID = "ORIGIN_MESSAGE_ID";
     public static final String PROPERTY_TRANSFER_FLAG = "TRANSFER_FLAG";
     public static final String PROPERTY_CORRECTION_FLAG = "CORRECTION_FLAG";

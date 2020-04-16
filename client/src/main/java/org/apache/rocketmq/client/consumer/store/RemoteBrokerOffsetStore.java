@@ -38,11 +38,22 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 
 /**
  * Remote storage implementation
+ * 集群模式消息消费进度存储在服务端Broker
  */
 public class RemoteBrokerOffsetStore implements OffsetStore {
     private final static InternalLogger log = ClientLogger.getLog();
     private final MQClientInstance mQClientFactory;
     private final String groupName;
+    /**
+     * key-消息队列
+     * value-该消息队列的消费偏移量，即consumeQueue文件中的偏移量
+     * 消费者本地缓存一份Broker端的消息的消费进度
+     * @see org.apache.rocketmq.broker.offset.ConsumerOffsetManager#offsetTable
+     *
+     * @see MQClientInstance#persistAllConsumerOffset()
+     * 中会根据当前客户端你的负载均衡结果动态更新offsetTable列表
+     * 并以offsetTable为依据向Broker更新MessageQueue的消费进度。
+     */
     private ConcurrentMap<MessageQueue, AtomicLong> offsetTable =
         new ConcurrentHashMap<MessageQueue, AtomicLong>();
 
@@ -55,6 +66,12 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     public void load() {
     }
 
+    /**
+     *
+     * @param mq 消息消费队列
+     * @param offset 消息消费偏僻量
+     * @param increaseOnly true标识offset必须大于内存中当前的消费偏移量才更新
+     */
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {
@@ -88,6 +105,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
                 }
                 case READ_FROM_STORE: {
                     try {
+                        //去Broker查询当前MessageQueue对应的消费偏移量
                         long brokerOffset = this.fetchConsumeOffsetFromBroker(mq);
                         AtomicLong offset = new AtomicLong(brokerOffset);
                         this.updateOffset(mq, offset.get(), false);
@@ -111,6 +129,11 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
         return -1;
     }
 
+    /**
+     * 持久化指定消息队列进度到磁盘
+     * @see MQClientInstance#persistAllConsumerOffset()
+     * MQClientInstance中的定时任务，默认每5秒持久化一次
+     */
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
         if (null == mqs || mqs.isEmpty())

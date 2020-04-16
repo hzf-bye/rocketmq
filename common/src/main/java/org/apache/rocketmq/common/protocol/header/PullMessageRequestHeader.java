@@ -20,32 +20,80 @@
  */
 package org.apache.rocketmq.common.protocol.header;
 
+import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
+/**
+ * 消费者去Broker服务器获取消息请求参数
+ */
 public class PullMessageRequestHeader implements CommandCustomHeader {
+
+    /**
+     * 消费组名称
+     */
     @CFNotNull
     private String consumerGroup;
+    /**
+     * topic
+     */
     @CFNotNull
     private String topic;
+    /**
+     * 队列id
+     */
     @CFNotNull
     private Integer queueId;
+    /**
+     * 消息拉取偏移量
+     * ConsumeQueue文件中的偏移量，相当于数组下标，乘以{@link org.apache.rocketmq.store.ConsumeQueue#CQ_STORE_UNIT_SIZE}
+     * 即得到consumeQueue文件的物理偏移量
+     */
     @CFNotNull
     private Long queueOffset;
+    /**
+     * 本次拉取最大消息条数，默认32条
+     * {@link org.apache.rocketmq.client.consumer.DefaultMQPushConsumer#pullBatchSize}
+     */
     @CFNotNull
     private Integer maxMsgNums;
+    /**
+     * 拉取系统标志
+     * {@link PullSysFlag}
+     */
     @CFNotNull
     private Integer sysFlag;
+    /**
+     * 当前MessageQueue消费进度（内存中）
+     */
     @CFNotNull
     private Long commitOffset;
+    /**
+     * 消息拉取过程中允许Broker挂起时间
+     * push模式默认15s
+     * @see org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl#BROKER_SUSPEND_MAX_TIME_MILLIS
+     */
     @CFNotNull
     private Long suspendTimeoutMillis;
+    /**
+     * 消息过滤表达式
+     * @see SubscriptionData#subString
+     */
     @CFNullable
     private String subscription;
+    /**
+     * {@link SubscriptionData#subVersion}
+     */
     @CFNotNull
     private Long subVersion;
+    /**
+     * 消息表达式类型，分为TAG、SQL92
+     * @see ExpressionType
+     */
     private String expressionType;
 
     @Override

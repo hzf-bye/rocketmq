@@ -17,25 +17,73 @@
 
 package org.apache.rocketmq.common.subscription;
 
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 
+/**
+ * 消费组配置信息
+ * 配置信息的使用
+ * @see org.apache.rocketmq.broker.processor.PullMessageProcessor#processRequest(io.netty.channel.Channel, org.apache.rocketmq.remoting.protocol.RemotingCommand, boolean)
+ */
 public class SubscriptionGroupConfig {
 
+    /**
+     * 消费组名
+     */
     private String groupName;
 
+    /**
+     * 当前消费组是否允许消费消息，默认为true
+     *
+     * 如果为false，该消费组无法拉取消息，从而无法消费消息。
+     */
     private boolean consumeEnable = true;
+
+    /**
+     * 是否允许队列最小偏移量开始消费，目前未使用该参数
+     */
     private boolean consumeFromMinEnable = true;
 
+    /**
+     * 该消费组是否能已广播模式消费，如果设置为false，则标识只能以集群模式消费。
+     */
     private boolean consumeBroadcastEnable = true;
 
+    /**
+     * 重试队列个数，默认为1
+     * 每个Broker上一个重试队列
+     */
     private int retryQueueNums = 1;
 
+    /**
+     * 消息最大重试次数
+     */
     private int retryMaxTimes = 16;
 
+    /**
+     * 默认主Broker
+     */
     private long brokerId = MixAll.MASTER_ID;
 
+    /**
+     * 当Broker建议下一次从Broker从节点拉取消息时，
+     * whichBrokerWhenConsumeSlowly指定从哪个从节点拉取
+     * 默认值1，即表示从brokerId=1的从节点拉取
+     * 设置
+     * @see org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand#execute(org.apache.commons.cli.CommandLine, org.apache.commons.cli.Options, org.apache.rocketmq.remoting.RPCHook)
+     * 可以通过mqadmin命令修改
+     */
     private long whichBrokerWhenConsumeSlowly = 1;
 
+    /**
+     * 当有新的消费者或者消费者订阅topic发生变化时是否立即进行消息队列重新负载
+     * @see org.apache.rocketmq.broker.client.ConsumerManager#registerConsumer(java.lang.String, org.apache.rocketmq.broker.client.ClientChannelInfo, org.apache.rocketmq.common.protocol.heartbeat.ConsumeType, org.apache.rocketmq.common.protocol.heartbeat.MessageModel, org.apache.rocketmq.common.consumer.ConsumeFromWhere, java.util.Set, boolean)
+     * 消费者订阅信息配置存储在Broker的${ROCKET_HOME}/store/config/subscriptionGroup.json。
+     * 默认情况下{@link BrokerConfig#autoCreateSubscriptionGroup}为true，表示在第一次使用消费组
+     * 配置信息时如果不存在，则使用自动创建一个{@link org.apache.rocketmq.broker.subscription.SubscriptionGroupManager#findSubscriptionGroupConfig(java.lang.String)}，
+     * 如果为false,则只能通过客户端命令
+     * mqadmin updateSubGroup创建后修改相关参数。
+     */
     private boolean notifyConsumerIdsChangedEnable = true;
 
     public String getGroupName() {

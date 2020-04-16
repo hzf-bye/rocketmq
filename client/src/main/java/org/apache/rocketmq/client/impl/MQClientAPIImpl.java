@@ -561,6 +561,15 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+
+    /**
+     * 异步向Broker拉取消息
+     * @param addr broker地址
+     * @param requestHeader 请求参数
+     * @param timeoutMillis 拉取消息超时时间
+     * @param communicationMode 拉取模式 {@link CommunicationMode}
+     * @param pullCallback 从Broker拉取到消息后的回调方法。
+     */
     public PullResult pullMessage(
         final String addr,
         final PullMessageRequestHeader requestHeader,
@@ -587,6 +596,13 @@ public class MQClientAPIImpl {
         return null;
     }
 
+    /**
+     * 异步向Broker拉取消息
+     * @param addr broker地址
+     * @param request 请求参数
+     * @param timeoutMillis 拉取消息超时时间
+     * @param pullCallback 从Broker拉取到消息后的回调方法。
+     */
     private void pullMessageAsync(
         final String addr,
         final RemotingCommand request,
@@ -599,8 +615,10 @@ public class MQClientAPIImpl {
                 RemotingCommand response = responseFuture.getResponseCommand();
                 if (response != null) {
                     try {
+                        //收到服务器响应后
                         PullResult pullResult = MQClientAPIImpl.this.processPullResponse(response);
                         assert pullResult != null;
+                        //回调
                         pullCallback.onSuccess(pullResult);
                     } catch (Exception e) {
                         pullCallback.onException(e);
@@ -632,6 +650,7 @@ public class MQClientAPIImpl {
     private PullResult processPullResponse(
         final RemotingCommand response) throws MQBrokerException, RemotingCommandException {
         PullStatus pullStatus = PullStatus.NO_NEW_MSG;
+        //将响应结果解码成PullResultExt对象
         switch (response.getCode()) {
             case ResponseCode.SUCCESS:
                 pullStatus = PullStatus.FOUND;
@@ -653,6 +672,7 @@ public class MQClientAPIImpl {
         PullMessageResponseHeader responseHeader =
             (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
 
+        //构建PullResultExt对象
         return new PullResultExt(pullStatus, responseHeader.getNextBeginOffset(), responseHeader.getMinOffset(),
             responseHeader.getMaxOffset(), null, responseHeader.getSuggestWhichBrokerId(), response.getBody());
     }
@@ -728,6 +748,14 @@ public class MQClientAPIImpl {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    /**
+     * 通过消费组名去Broker中获取当前consumerGroup下的所有客户端的客户端id
+     * 客户端启动时，会定时向Broker发送心跳包，注册自己
+     * @see MQClientInstance#sendHeartbeatToAllBrokerWithLock()
+     * @param addr broker addr
+     * @param consumerGroup 消费组名
+     * @param timeoutMillis 超时时间
+     */
     public List<String> getConsumerIdListByGroup(
         final String addr,
         final String consumerGroup,
@@ -941,6 +969,15 @@ public class MQClientAPIImpl {
         return response.getCode() == ResponseCode.SUCCESS;
     }
 
+    /**
+     * ACK消息发送的网络端入口
+     * @param addr broekr addr
+     * @param msg 消息
+     * @param consumerGroup 消费组名称
+     * @param delayLevel 消息延迟级别
+     * @param timeoutMillis 消息发送超时时间
+     * @param maxConsumeRetryTimes 消息发送重试次数
+     */
     public void consumerSendMessageBack(
         final String addr,
         final MessageExt msg,

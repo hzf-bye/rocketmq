@@ -17,25 +17,38 @@
 
 package org.apache.rocketmq.client.consumer.listener;
 
+import org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyService;
+import org.apache.rocketmq.client.impl.consumer.ConsumeMessageOrderlyService;
+
+/**
+ * @see ConsumeMessageConcurrentlyService.ConsumeRequest#run()
+ * @see ConsumeMessageOrderlyService.ConsumeRequest#run()
+ */
 public enum ConsumeReturnType {
     /**
      * consume return success
+     * 消息消费成功
      */
     SUCCESS,
     /**
      * consume timeout ,even if success
+     * 消息消费超时，默认超时时间15分钟
      */
     TIME_OUT,
     /**
      * consume throw exception
+     * 消息消费过程中出现异常
      */
     EXCEPTION,
     /**
      * consume return null
+     * 消息消费后返回 null
      */
     RETURNNULL,
     /**
      * consume return failed
+     * 消息消费后返回
+     * @see ConsumeConcurrentlyStatus#RECONSUME_LATER
      */
     FAILED
 }

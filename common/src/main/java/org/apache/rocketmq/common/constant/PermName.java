@@ -24,9 +24,9 @@ public class PermName {
     /**
      * 自我理解
      * 如果某topic拥有此权限，那么他的{@link org.apache.rocketmq.common.TopicConfig}中的属性是可以被继承的
-     * 如{org.apache.rocketmq.broker.topic.TopicConfigManager#createTopicInSendMessageMethod(java.lang.String, java.lang.String, java.lang.String, int, int)}
-     * 方法中如果当前发送消息的topic在缓存中没有，则没有预先创建好此topic，那么将创建此topic对应的{@link org.apache.rocketmq.common.TopicConfig}。
-     * 且此tipoc的默认topic key是{@link org.apache.rocketmq.common.MixAll#AUTO_CREATE_TOPIC_KEY_TOPIC}
+     * 如{@link org.apache.rocketmq.broker.topic.TopicConfigManager#createTopicInSendMessageMethod(java.lang.String, java.lang.String, java.lang.String, int, int)}
+     * 方法中如果当前发送消息的topic在缓存中没有，且没有预先创建好此topic，且允许自动创建topic，那么将创建此topic对应的{@link org.apache.rocketmq.common.TopicConfig}。
+     * 且此topic的默认topic key是{@link org.apache.rocketmq.common.MixAll#AUTO_CREATE_TOPIC_KEY_TOPIC}
      * 且其中的值可继承自AUTO_CREATE_TOPIC_KEY_TOPIC对应的TopicConfig
      */
     public static final int PERM_INHERIT = 0x1 << 0;

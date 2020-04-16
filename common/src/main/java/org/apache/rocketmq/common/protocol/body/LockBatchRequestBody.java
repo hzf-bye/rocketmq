@@ -22,9 +22,24 @@ import java.util.Set;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
+/**
+ * 顺序消费时，消费者向master Broker锁定消息队列的请求参数
+ * @see org.apache.rocketmq.client.impl.consumer.RebalanceImpl#lockAll()
+ */
 public class LockBatchRequestBody extends RemotingSerializable {
+
+    /**
+     * 消费组名
+     */
     private String consumerGroup;
+    /**
+     * 客户端唯一id
+     * @see org.apache.rocketmq.client.impl.factory.MQClientInstance#clientId
+     */
     private String clientId;
+    /**
+     * 消息消费队列
+     */
     private Set<MessageQueue> mqSet = new HashSet<MessageQueue>();
 
     public String getConsumerGroup() {

@@ -21,6 +21,9 @@ import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.logging.InternalLogger;
 
+/**
+ * rocketMq消息队列重新分布是由rebalanceService线程来实现的。
+ */
 public class RebalanceService extends ServiceThread {
     private static long waitInterval =
         Long.parseLong(System.getProperty(
@@ -37,6 +40,9 @@ public class RebalanceService extends ServiceThread {
         log.info(this.getServiceName() + " service started");
 
         while (!this.isStopped()) {
+            /**
+             * 默认每20s执行一次mqClientFactory.doRebalance()方法，可使用-Drocketmq.client.rebalance.waitInterval来改变默认值。
+             */
             this.waitForRunning(waitInterval);
             this.mqClientFactory.doRebalance();
         }

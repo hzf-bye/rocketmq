@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.common.consumer;
 
+/**
+ * @see org.apache.rocketmq.client.impl.consumer.RebalancePushImpl#computePullFromWhere(org.apache.rocketmq.common.message.MessageQueue)
+ * ConsumeFromWhere相关消息消费进度校验策略，只有在从Broker中获取的消费进度返回-1时才会生效，
+ * 如果从Broker消息消费进度缓存中返回的消费进度小于-1，表示偏移量非法，则丢弃该消费队列等待下一次负载均衡。
+ *
+ */
 public enum ConsumeFromWhere {
 
     /**
@@ -30,6 +36,8 @@ public enum ConsumeFromWhere {
     @Deprecated
     CONSUME_FROM_MAX_OFFSET,
     /**
+     * 从Broker消息进度文件中存储的偏移量{@link org.apache.rocketmq.broker.offset.ConsumerOffsetManager#offsetTable}开始消费，
+     * 如果不存在当前消费队列的消费偏移量，则从0开始消费。
      * 从队列当前最小偏移量开始消费，即历史消息（还储存在broker的）全部消费一遍
      */
     CONSUME_FROM_FIRST_OFFSET,

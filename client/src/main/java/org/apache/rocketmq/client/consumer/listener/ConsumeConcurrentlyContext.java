@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.consumer.listener;
 
+import org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyService;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
@@ -28,8 +29,21 @@ public class ConsumeConcurrentlyContext {
      * -1,no retry,put into DLQ directly<br>
      * 0,broker control retry frequency<br>
      * >0,client control retry frequency
+     * 集群模式下消息并发消费失败时的处理策略
+     * @see ConsumeMessageConcurrentlyService#sendMessageBack(org.apache.rocketmq.common.message.MessageExt, org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext)
+     * -1 表示消息直接进入DLQ队列，私信队列
+     * 0  表示消息延迟级别由当前消息的重试次数 + 1
+     * >0 表示当前消息的延迟级别
+     * @see org.apache.rocketmq.broker.processor.SendMessageProcessor#consumerSendMsgBack(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+     * 中对于level的处理
      */
     private int delayLevelWhenNextConsume = 0;
+
+    /**
+     * 业务消息监听器返回 CONSUME_SUCCESS 时，
+     * 业务端可以更改此时，以便于客户端统计消费成功的消息的数量，以及消息失败的消息的数量
+     * @see ConsumeMessageConcurrentlyService#processConsumeResult(org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus, org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext, org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyService.ConsumeRequest)
+     */
     private int ackIndex = Integer.MAX_VALUE;
 
     public ConsumeConcurrentlyContext(MessageQueue messageQueue) {

@@ -26,15 +26,38 @@ public class GetMessageResult {
     private final List<SelectMappedBufferResult> messageMapedList =
         new ArrayList<SelectMappedBufferResult>(100);
 
+    /**
+     * SelectMappedBufferResult中的byteBuffer
+     * @see SelectMappedBufferResult#byteBuffer
+     */
     private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
 
+    /**
+     * 拉取消息状态
+     */
     private GetMessageStatus status;
+    /**
+     * 下一次从消息消费队列文件（ConsumeQueue）拉取消息的偏移量
+     */
     private long nextBeginOffset;
+    /**
+     * 消息消费队列文件（ConsumeQueue）中的最小偏移量
+     */
     private long minOffset;
+    /**
+     * 消息消费队列文件（ConsumeQueue）中的最大偏移量
+     */
     private long maxOffset;
 
+    /**
+     * 读取到的所有的消息的大小
+     */
     private int bufferTotalSize = 0;
 
+    /**
+     * 建议下一次拉取任务是否从Broker从节点拉取，
+     * true-从Broker从节点拉取，说明从当前Broker拉取消息速度太慢，建议换一个Broker
+     */
     private boolean suggestPullingFromSlave = false;
 
     private int msgCount4Commercial = 0;

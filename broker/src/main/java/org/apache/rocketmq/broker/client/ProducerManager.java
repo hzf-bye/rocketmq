@@ -29,6 +29,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.rocketmq.broker.util.PositiveAtomicCounter;
+import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
@@ -41,6 +42,13 @@ public class ProducerManager {
     private static final long CHANNEL_EXPIRED_TIMEOUT = 1000 * 120;
     private static final int GET_AVALIABLE_CHANNEL_RETRY_COUNT = 3;
     private final Lock groupChannelLock = new ReentrantLock();
+    /**
+     * 消费者启动时会向Broker发送心跳包，心跳包中包含消费者信息。
+     * @see MQClientInstance#sendHeartbeatToAllBrokerWithLock()
+     * @see ProducerManager#scanNotActiveChannel()
+     * Broker启动时会定时执行scanNotActiveChannel方法，扫描所有的客户端是否活跃，
+     * 如果120s后该客户端还未通过sendHeartbeatToAllBroker发送心跳包则移除改客户端
+     */
     private final HashMap<String /* group name */, HashMap<Channel, ClientChannelInfo>> groupChannelTable =
         new HashMap<String, HashMap<Channel, ClientChannelInfo>>();
     private PositiveAtomicCounter positiveAtomicCounter = new PositiveAtomicCounter();

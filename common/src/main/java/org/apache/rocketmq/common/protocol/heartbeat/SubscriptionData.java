@@ -27,10 +27,16 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class SubscriptionData implements Comparable<SubscriptionData> {
+
+    /**
+     * 过滤模式，默认全匹配
+     */
     public final static String SUB_ALL = "*";
 
     /**
      * 是否是消息过滤方式使用类模式。
+     * false-消息过滤方式使用表达式
+     * true-消息过滤方式使用类模式。
      */
     private boolean classFilterMode = false;
     /**
@@ -38,21 +44,28 @@ public class SubscriptionData implements Comparable<SubscriptionData> {
      */
     private String topic;
     /**
-     * 消息过滤表达式，TAG或SQL92。仅支持 "|" 表达式，如"tag1 || tag2 || tag3"，如果为 * 则表示订阅全部
+     * 消息过滤表达式，TAG或SQL92。多个之间用双竖线隔开，如"tag1 || tag2 || tag3"，如果为 * 则表示订阅全部
      * 如果{@link SubscriptionData#classFilterMode}为true，subString那么过滤类全路径名
      */
     private String subString;
     /**
      * 消息过滤的tag集合，比如subString="tag1 || tag2 || tag3"
      * 那么集合大小为3，分别是tag1,tag2,tag3
+     * 消费端过滤时进行消息过滤的依据
+     * @see org.apache.rocketmq.client.impl.consumer.PullAPIWrapper#processPullResult(org.apache.rocketmq.common.message.MessageQueue, org.apache.rocketmq.client.consumer.PullResult, org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData)
      */
     private Set<String> tagsSet = new HashSet<String>();
     /**
      * tag值对应的hashCode
      * "tag1".hashcode()
+     * 消息过滤tag hashCode集合
      */
     private Set<Integer> codeSet = new HashSet<Integer>();
+
     private long subVersion = System.currentTimeMillis();
+    /**
+     * 消息表达式类型，分为TAG、SQL92
+     */
     private String expressionType = ExpressionType.TAG;
 
     /**

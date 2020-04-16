@@ -81,8 +81,14 @@ public class MixAll {
     public static final long MASTER_ID = 0L;
     public static final long CURRENT_JVM_PID = getPID();
 
+    /**
+     * 重试topic前缀
+     */
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
 
+    /**
+     * 私信队列topic 前缀
+     */
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";
     public static final String UNIQUE_MSG_QUERY_FLAG = "_UNIQUE_KEY_QUERY";
@@ -148,17 +154,24 @@ public class MixAll {
         return 0;
     }
 
+    /**
+     * 1.换存之前fileName中的存储的数据
+     * 2.将当前的数据str替换之前fileName中存储的数据
+     */
     public static void string2File(final String str, final String fileName) throws IOException {
 
+        //将str数据存入临时文件夹中
         String tmpFile = fileName + ".tmp";
         string2FileNotSafe(str, tmpFile);
 
+        //将之前存储的时间暂存起来
         String bakFile = fileName + ".bak";
         String prevContent = file2String(fileName);
         if (prevContent != null) {
             string2FileNotSafe(prevContent, bakFile);
         }
 
+        //然后将刚才创建的临时文件夹变更为配置文件
         File file = new File(fileName);
         file.delete();
 

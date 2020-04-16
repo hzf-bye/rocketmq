@@ -17,9 +17,26 @@
 package org.apache.rocketmq.common.sysflag;
 
 public class PullSysFlag {
+    /**
+     * 集群模式下标识从内存读取的消费进度偏移量大于0，则设置该标记位
+     * @see org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore#offsetTable
+     * 即缓存的MessageQueue对应的消费进度大于0
+     * @see org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl#pullMessage(org.apache.rocketmq.client.impl.consumer.PullRequest)
+     * 中调用
+     * @see PullSysFlag#buildSysFlag(boolean, boolean, boolean, boolean)
+     */
     private final static int FLAG_COMMIT_OFFSET = 0x1 << 0;
+    /**
+     * 表示消息拉取时支持Broker挂起
+     */
     private final static int FLAG_SUSPEND = 0x1 << 1;
+    /**
+     * 消息过滤机制为表达式，则设置该标记位
+     */
     private final static int FLAG_SUBSCRIPTION = 0x1 << 2;
+    /**
+     * 消息过滤机制为类过滤模式
+     */
     private final static int FLAG_CLASS_FILTER = 0x1 << 3;
 
     public static int buildSysFlag(final boolean commitOffset, final boolean suspend,

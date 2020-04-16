@@ -22,12 +22,23 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -43,7 +54,11 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
@@ -54,8 +69,105 @@ public class BrokerStartup {
     public static String configFile = null;
     public static InternalLogger log;
 
+    public static ExecutorService executorService = Executors.newFixedThreadPool(2);
+
     public static void main(String[] args) {
         start(createBrokerController(args));
+        producer();
+        consumer();
+
+    }
+
+    private static void producer() {
+
+        executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+
+                try {
+                    DefaultMQProducer producer = new DefaultMQProducer("please_rename_unique_group_name");
+
+                    producer.setNamesrvAddr("127.0.0.1:9876");
+                    /*
+                     * Launch the instance.
+                     */
+                    producer.start();
+
+                    for (int i = 0; i < 128; i++) {
+                        try {
+
+                            /*
+                             * Create a message instance, specifying topic, tag and message body.
+                             */
+                            Message msg = new Message("TopicTest_hzf1" /* Topic */,
+                                    "TagA" /* Tag */,
+                                    ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
+                            );
+
+                            /*
+                             * Call send message to deliver message to one of brokers.
+                             */
+                            SendResult sendResult = producer.send(msg);
+
+                            System.out.printf("%s%n", sendResult);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            Thread.sleep(1000);
+                        }
+                    }
+
+                    /*
+                     * Shut down once the producer instance is not longer in use.
+                     */
+                    producer.shutdown();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+
+    }
+
+    private static void consumer() {
+
+        executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+
+                try {
+                    DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name_4");
+
+                    consumer.setNamesrvAddr("127.0.0.1:9876");
+
+
+                    consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+
+
+                    consumer.subscribe("TopicTest_hzf1", "*");
+
+
+                    consumer.registerMessageListener(new MessageListenerConcurrently() {
+
+                        @Override
+                        public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
+                                                                        ConsumeConcurrentlyContext context) {
+                            System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
+                            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+                        }
+                    });
+
+                    /*
+                     *  Launch the consumer instance.
+                     */
+                    consumer.start();
+
+                    System.out.printf("Consumer Started.%n");
+                } catch (MQClientException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     public static BrokerController start(BrokerController controller) {

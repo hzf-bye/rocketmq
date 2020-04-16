@@ -28,7 +28,14 @@ import java.util.List;
 
 public class QueueData implements Comparable<QueueData> {
     private String brokerName;
+
+    /**
+     * 读队列数，消费者从读队列中获取消息
+     */
     private int readQueueNums;
+    /**
+     * 写队列数，消费者从写队列中写入消息
+     */
     private int writeQueueNums;
     /**
      * 读写权限，具体含义参考PermName

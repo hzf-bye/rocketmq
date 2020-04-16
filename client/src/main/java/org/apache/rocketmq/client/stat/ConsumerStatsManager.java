@@ -19,6 +19,8 @@ package org.apache.rocketmq.client.stat;
 
 import java.util.concurrent.ScheduledExecutorService;
 
+import org.apache.rocketmq.client.consumer.PullCallback;
+import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.protocol.body.ConsumeStatus;
@@ -34,10 +36,31 @@ public class ConsumerStatsManager {
     private static final String TOPIC_AND_GROUP_PULL_TPS = "PULL_TPS";
     private static final String TOPIC_AND_GROUP_PULL_RT = "PULL_RT";
 
+    /**
+     * consumerGroup+topic下的消息消费成功数量
+     */
     private final StatsItemSet topicAndGroupConsumeOKTPS;
+
+    /**
+     * consumerGroup+topic下的消息消费耗时
+     */
     private final StatsItemSet topicAndGroupConsumeRT;
+    /**
+     * consumerGroup+topic下的消息消费失败数量
+     */
     private final StatsItemSet topicAndGroupConsumeFailedTPS;
+    /**
+     * 记录consumerGroup+topi维度下的 消息拉取次数与消息拉取条数
+     * @see DefaultMQPushConsumerImpl#pullMessage(org.apache.rocketmq.client.impl.consumer.PullRequest)
+     * @see PullCallback#onSuccess(org.apache.rocketmq.client.consumer.PullResult)
+     */
     private final StatsItemSet topicAndGroupPullTPS;
+
+    /**
+     * 记录consumerGroup+topi维度下的 消息拉取次数与消息拉取时间
+     * @see DefaultMQPushConsumerImpl#pullMessage(org.apache.rocketmq.client.impl.consumer.PullRequest)
+     * @see PullCallback#onSuccess(org.apache.rocketmq.client.consumer.PullResult)
+     */
     private final StatsItemSet topicAndGroupPullRT;
 
     public ConsumerStatsManager(final ScheduledExecutorService scheduledExecutorService) {

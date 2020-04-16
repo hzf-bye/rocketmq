@@ -32,6 +32,9 @@ public class MessageExt extends Message {
 
     private int storeSize;
 
+    /**
+     * 消息在ConsumerQueue中的偏移量
+     */
     private long queueOffset;
     /**
      * 消息系统标记
@@ -61,9 +64,16 @@ public class MessageExt extends Message {
     private SocketAddress storeHost;
 
     /**
-     *
+     * 消息id
+     * @see org.apache.rocketmq.store.CommitLog.DefaultAppendMessageCallback#doAppend(long, java.nio.ByteBuffer, int, org.apache.rocketmq.store.MessageExtBrokerInner)
+     * @see MessageDecoder#createMessageId(java.nio.ByteBuffer, java.nio.ByteBuffer, long)
      */
     private String msgId;
+
+    /**
+     * 消息物理偏移量
+     * commitLog文件中的物理偏移量
+     */
     private long commitLogOffset;
 
     /**
@@ -74,7 +84,8 @@ public class MessageExt extends Message {
     private int bodyCRC;
 
     /**
-     * 消息重试次数
+     * 消息已经重试次数，初始时为0
+     * 消息消费失败后，会发往Broker尝试重新消费，那么次数+1
      */
     private int reconsumeTimes;
 

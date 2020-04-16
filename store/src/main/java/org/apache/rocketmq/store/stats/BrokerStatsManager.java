@@ -31,10 +31,28 @@ public class BrokerStatsManager {
 
     public static final String TOPIC_PUT_NUMS = "TOPIC_PUT_NUMS";
     public static final String TOPIC_PUT_SIZE = "TOPIC_PUT_SIZE";
+    /**
+     * 成功拉取消息条数的key
+     * consumerGroup + topic维度消息数量
+     * @see BrokerStatsManager#statsTable 中的key
+     * @see org.apache.rocketmq.broker.processor.PullMessageProcessor#processRequest(io.netty.channel.Channel, org.apache.rocketmq.remoting.protocol.RemotingCommand, boolean)
+     */
     public static final String GROUP_GET_NUMS = "GROUP_GET_NUMS";
+    /**
+     * 成功拉取消息总的字节大小的key
+     *  consumerGroup + topic维度消息大小
+     * @see BrokerStatsManager#statsTable 中的key
+     * @see org.apache.rocketmq.broker.processor.PullMessageProcessor#processRequest(io.netty.channel.Channel, org.apache.rocketmq.remoting.protocol.RemotingCommand, boolean)
+     */
     public static final String GROUP_GET_SIZE = "GROUP_GET_SIZE";
     public static final String SNDBCK_PUT_NUMS = "SNDBCK_PUT_NUMS";
     public static final String BROKER_PUT_NUMS = "BROKER_PUT_NUMS";
+    /**
+     * 成功拉取消息条数的key
+     * Broker 集群名称维度
+     * @see  BrokerStatsManager#statsTable 中的key
+     * @see org.apache.rocketmq.broker.processor.PullMessageProcessor#processRequest(io.netty.channel.Channel, org.apache.rocketmq.remoting.protocol.RemotingCommand, boolean)
+     */
     public static final String BROKER_GET_NUMS = "BROKER_GET_NUMS";
     public static final String GROUP_GET_FROM_DISK_NUMS = "GROUP_GET_FROM_DISK_NUMS";
     public static final String GROUP_GET_FROM_DISK_SIZE = "GROUP_GET_FROM_DISK_SIZE";

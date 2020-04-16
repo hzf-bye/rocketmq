@@ -23,6 +23,8 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.TransientStorePool;
+import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 
 /**
  *可以在启动Broker时通过-c 命令指定配置文件命令，然后会通过反射赋值含有set方法的属性
@@ -201,14 +203,38 @@ public class MessageStoreConfig {
      * @see DefaultMessageStore.FlushConsumeQueueService#doFlush(int)
      */
     private int flushConsumeQueueThoroughInterval = 1000 * 60;
+    /**
+     * 如果待拉取的消息在内存中
+     * 那么已读取的消息的字节大小加上当前消息的大小超过maxTransferBytesOnMessageInMemory（默认值256kb）则不再读取消息
+     * @see DefaultMessageStore#isTheBatchFull(int, int, int, int, boolean)
+     */
     @ImportantField
     private int maxTransferBytesOnMessageInMemory = 1024 * 256;
+    /**
+     * 如果待拉取的消息在内存中
+     * 那么如果已读取的消息条数大于等于maxTransferCountOnMessageInMemory，则不再读取消息
+     * @see DefaultMessageStore#isTheBatchFull(int, int, int, int, boolean)
+     */
     @ImportantField
     private int maxTransferCountOnMessageInMemory = 32;
+    /**
+     * 如果待拉取的消息已经在磁盘中
+     * 那么已读取的消息的字节大小加上当前消息的大小超过maxTransferBytesOnMessageInDisk（默认值64kb）则不再读取消息
+     * @see DefaultMessageStore#isTheBatchFull(int, int, int, int, boolean)
+     */
     @ImportantField
     private int maxTransferBytesOnMessageInDisk = 1024 * 64;
+    /**
+     * 如果待拉取的消息已经在磁盘中
+     * 那么如果已读取的消息条数大于等于maxTransferCountOnMessageInDisk，则不再读取消息
+     * @see DefaultMessageStore#isTheBatchFull(int, int, int, int, boolean)
+     */
     @ImportantField
     private int maxTransferCountOnMessageInDisk = 8;
+    /**
+     * 内存使用率，默认40%
+     * @see DefaultMessageStore#checkInDiskByCommitOffset(long, long)
+     */
     @ImportantField
     private int accessMessageInMemoryMaxRatio = 40;
 
@@ -256,6 +282,11 @@ public class MessageStoreConfig {
      *
      */
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
+
+    /**
+     * 持久化延迟队列定时任务执行间隔
+     * @see ScheduleMessageService#start()
+     */
     private long flushDelayOffsetInterval = 1000 * 10;
     /**
      * 当磁盘使用率超过阈值是否需要强制删除commitlog文件，默认值true，即需要
@@ -270,6 +301,10 @@ public class MessageStoreConfig {
      * 索引允许重复构建，通过配置项duplicationEnable指定。系统启动的时候，如果允许重复索引会重头构建，不然就从当前文件大小开始。
      */
     private boolean duplicationEnable = false;
+    /**
+     * 是否记录磁盘活动图，默认为false。
+     * @see DefaultMessageStore#getMessage(java.lang.String, java.lang.String, int, long, int, org.apache.rocketmq.store.MessageFilter)
+     */
     private boolean diskFallRecorded = true;
 
     /**
@@ -288,6 +323,10 @@ public class MessageStoreConfig {
      */
     @ImportantField
     private boolean transientStorePoolEnable = false;
+    /**
+     * 初始化DirectByteBuffer堆外内存个数
+     * @see TransientStorePool#init()
+     */
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 

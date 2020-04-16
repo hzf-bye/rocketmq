@@ -23,6 +23,8 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -54,6 +56,11 @@ public class PullAPIWrapper {
     private final MQClientInstance mQClientFactory;
     private final String consumerGroup;
     private final boolean unitMode;
+    /**
+     * 从Broke拉取消息后，Broker会返回建议的BrokerId，调用processPullResult方法
+     * @see PullAPIWrapper#processPullResult(org.apache.rocketmq.common.message.MessageQueue, org.apache.rocketmq.client.consumer.PullResult, org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData)
+     * @see PullAPIWrapper#updatePullFromWhichNode(org.apache.rocketmq.common.message.MessageQueue, long)
+     */
     private ConcurrentMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
         new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
     private volatile boolean connectBrokerByUser = false;
@@ -67,19 +74,34 @@ public class PullAPIWrapper {
         this.unitMode = unitMode;
     }
 
+    /**
+     * 将消息字节数组解码成消息列表填充PullResult#msgFoundList
+     * 这里还会根据tag再次过滤消息
+     */
     public PullResult processPullResult(final MessageQueue mq, final PullResult pullResult,
         final SubscriptionData subscriptionData) {
         PullResultExt pullResultExt = (PullResultExt) pullResult;
 
+        //更新当前消息队列下的建议下次拉取的Broker的brokerId，即建议从当前返回的brokerId的Broker拉取消息
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
+        //如果找到消息
         if (PullStatus.FOUND == pullResult.getPullStatus()) {
+            //将拉取到的消息的字节数组转化为ByteBuffer
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
+            //按照消息编码方式，解码消息
             List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
 
             List<MessageExt> msgListFilterAgain = msgList;
+            //消息过滤当时是消息表达式，且过滤的Tag不空
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
+                //msgListFilterAgain保留最终的消息
                 msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
                 for (MessageExt msg : msgList) {
+                    /**
+                     * 再根据tag精确过滤消息。因为服务器只是通过消息的tag hashcode过滤，并不精确
+                     * @see org.apache.rocketmq.store.DefaultMessageStore#getMessage(java.lang.String, java.lang.String, int, long, int, org.apache.rocketmq.store.MessageFilter)
+                     * @see org.apache.rocketmq.broker.filter.ExpressionMessageFilter#isMatchedByConsumeQueue(java.lang.Long, org.apache.rocketmq.store.ConsumeQueueExt.CqExtUnit)
+                     */
                     if (msg.getTags() != null) {
                         if (subscriptionData.getTagsSet().contains(msg.getTags())) {
                             msgListFilterAgain.add(msg);
@@ -88,6 +110,7 @@ public class PullAPIWrapper {
                 }
             }
 
+            //执行钩子函数
             if (this.hasHook()) {
                 FilterMessageContext filterMessageContext = new FilterMessageContext();
                 filterMessageContext.setUnitMode(unitMode);
@@ -97,9 +120,11 @@ public class PullAPIWrapper {
 
             for (MessageExt msg : msgListFilterAgain) {
                 String traFlag = msg.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+                //事务消息
                 if (traFlag != null && Boolean.parseBoolean(traFlag)) {
                     msg.setTransactionId(msg.getProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
                 }
+                //设置消息消费队列中额最大与最小偏移量
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MIN_OFFSET,
                     Long.toString(pullResult.getMinOffset()));
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
@@ -139,6 +164,21 @@ public class PullAPIWrapper {
         }
     }
 
+    /**
+     * 从服务端拉取消息
+     * @param mq 从哪个消息消费队列拉取消息。
+     * @param subExpression 消息过滤表达式
+     * @param expressionType 消息表达式类型，分为TAG、SQL92
+     * @param subVersion {@link SubscriptionData#subVersion}
+     * @param offset 消息拉取偏移量 ConsumeQueue中的偏移量，相当于数组下标
+     * @param maxNums 本次拉取最大消息条数，默认32条 {@link DefaultMQPushConsumer#pullBatchSize}
+     * @param sysFlag 拉取系统标志{@link PullSysFlag}
+     * @param commitOffset 当前MessageQueue消费进度（内存中）
+     * @param brokerSuspendMaxTimeMillis 消息拉取过程中允许Broker挂起时间，默认15s
+     * @param timeoutMillis 消息拉取超时时间，默认30s
+     * @param communicationMode 消息拉取模式，默认为异步拉取
+     * @param pullCallback 从Broker拉取到消息后的回调方法。
+     */
     public PullResult pullKernelImpl(
         final MessageQueue mq,
         final String subExpression,
@@ -153,10 +193,16 @@ public class PullAPIWrapper {
         final CommunicationMode communicationMode,
         final PullCallback pullCallback
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        /**
+         * 根据brokerName、brokerId从MQClientInstance中获取Broker地址
+         * 在整个RocketMq Broker的部署结构中，相同名称的Broker构成主从结构，其BrokerId会不一样，
+         * 在每次拉取消息后，会给出一个建议，下次拉取是从主节点还是从节点拉取。
+         */
         FindBrokerResult findBrokerResult =
             this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
                 this.recalculatePullFromWhichNode(mq), false);
         if (null == findBrokerResult) {
+            //如果没有找到当前BrokerName对应的Broker地址，那么就去NameSrv中获取
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
                 this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
@@ -166,6 +212,8 @@ public class PullAPIWrapper {
         if (findBrokerResult != null) {
             {
                 // check version
+                // 如果消息表达式类型不是TAG，且Broker版本消息4.1.0报错，
+                // 意思就是SQL92表达式需要Broker版本大于等于4.1.0才支持
                 if (!ExpressionType.isTagType(expressionType)
                     && findBrokerResult.getBrokerVersion() < MQVersion.Version.V4_1_0_SNAPSHOT.ordinal()) {
                     throw new MQClientException("The broker[" + mq.getBrokerName() + ", "
@@ -174,6 +222,7 @@ public class PullAPIWrapper {
             }
             int sysFlagInner = sysFlag;
 
+            //如果当前Broekr是从节点，那么清除 标识从内存读取的消费进度大于0 的标志位
             if (findBrokerResult.isSlave()) {
                 sysFlagInner = PullSysFlag.clearCommitOffsetFlag(sysFlagInner);
             }
@@ -192,10 +241,15 @@ public class PullAPIWrapper {
             requestHeader.setExpressionType(expressionType);
 
             String brokerAddr = findBrokerResult.getBrokerAddr();
+            /*
+             * 如果消息过滤模式为类过滤，则需要根据主题名称、broker地址找到注册在Broker上的FilterServer地址，
+             * 从FilterServer上拉取消息，否则从Broker拉取消息。
+             */
             if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
                 brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);
             }
 
+            //异步向Broker拉取消息
             PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(
                 brokerAddr,
                 requestHeader,

@@ -56,8 +56,20 @@ public class StoreStatsService extends ServiceThread {
     private final ConcurrentMap<String, AtomicLong> putMessageTopicSizeTotal =
         new ConcurrentHashMap<String, AtomicLong>(128);
 
+    /**
+     * 消费者每成功拉取一次消息（获取到多条消息） 计数器+1
+     * @see DefaultMessageStore#getMessage(java.lang.String, java.lang.String, int, long, int, org.apache.rocketmq.store.MessageFilter)
+     */
     private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
+    /**
+     * 消费者每拉取一条消息 计数器+1
+     * @see DefaultMessageStore#getMessage(java.lang.String, java.lang.String, int, long, int, org.apache.rocketmq.store.MessageFilter)
+     */
     private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
+    /**
+     * 消费者每拉取一次消息未成功，计数器+1
+     * @see DefaultMessageStore#getMessage(java.lang.String, java.lang.String, int, long, int, org.apache.rocketmq.store.MessageFilter)
+     */
     private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
     private final LinkedList<CallSnapshot> putTimesList = new LinkedList<CallSnapshot>();
 

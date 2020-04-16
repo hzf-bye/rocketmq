@@ -30,8 +30,7 @@ import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.RemoteBrokerOffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.impl.consumer.ConsumeMessageOrderlyService;
-import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
+import org.apache.rocketmq.client.impl.consumer.*;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -120,6 +119,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * </li>
      * </ul>
      * 根据消息进度从服务器拉取不到消息时重新计算消费策略。默认 从队列当前最大偏移量开始消费
+     * @see RebalancePushImpl#computePullFromWhere(org.apache.rocketmq.common.message.MessageQueue)
      */
     private ConsumeFromWhere consumeFromWhere = ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET;
 
@@ -136,6 +136,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * 集群模式下消息队列负载均衡策略。
      * 默认值
+     * @see DefaultMQPushConsumer#DefaultMQPushConsumer()
      * @see AllocateMessageQueueAveragely
      * Queue allocation algorithm specifying how message queues are allocated to each consumer clients.
      */
@@ -151,6 +152,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * 消息业务监听器
      * Message listener
+     * 消费者启动前必须注册此监听器
+     * 监听器的作用就是执行具体的业务逻辑
      */
     private MessageListener messageListener;
 
@@ -165,12 +168,16 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Minimum consumer thread number
      * 消费者最小线程数
+     * @see ConsumeMessageOrderlyService#ConsumeMessageOrderlyService(org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl, org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly)
+     * @see ConsumeMessageConcurrentlyService#ConsumeMessageConcurrentlyService(org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl, org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently)
      */
     private int consumeThreadMin = 20;
 
     /**
      * Max consumer thread number
      * 消费者最大线程数，由于消费者线程池使用无界队列，故消费者线程个数最多只有consumeThreadMin个
+     * @see ConsumeMessageOrderlyService#ConsumeMessageOrderlyService(org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl, org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly)
+     * @see org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyService#ConsumeMessageConcurrentlyService(org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl, org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently)
      */
     private int consumeThreadMax = 64;
 
@@ -183,7 +190,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Concurrently max span offset.it has no effect on sequential consumption
      * 并发消息消费时处理队列最大跨度，默认2000，
      * 标识如果消息处理队列中偏移量最大的消息与偏移量最小的消息的跨度超过2000
-     * 则延迟50毫秒后再拉取消息。
+     * 则延迟50毫秒后再尝试拉取消息。
+     *
+     * 因为并发消费流程中，当一批消息消费成功后，是获取当前消息处理队列{@link ProcessQueue}中的最小消息偏移量取更新消息的消费进度，
+     * 假设某个消息消费时发送了死锁，一直无法消费完成，那岂不是消息进度无法向前推进。
+     * 为了避免这种情况，RocketMq引入了流控措施：即当ProcessQueue中最大消息偏移量与最小消息偏移量不能超过consumeConcurrentlyMaxSpan，
+     * 如果超过则触发流控，将延迟该消息队列的消息拉取。
+     * @see DefaultMQPushConsumerImpl#pullMessage(org.apache.rocketmq.client.impl.consumer.PullRequest) 中的逻辑
      */
     private int consumeConcurrentlyMaxSpan = 2000;
 
@@ -193,6 +206,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * 拉消息本地队列缓存消息最大数，用于topic级别的流量控制，控制单位为消息个数，取值范围都是 [1, 65535]，默认是1000。
      * 如果设置了{@link DefaultMQPushConsumer#pullThresholdForTopic}，就是限制了topic级别的消息缓存数（通常没有），
      * 那么会将本地每个queue的缓存数更新为pullThresholdForTopic / currentQueueCount 限制总数 / 队列数。
+     * @see DefaultMQPushConsumerImpl#pullMessage(org.apache.rocketmq.client.impl.consumer.PullRequest) 中的逻辑
      */
     private int pullThresholdForQueue = 1000;
 
@@ -203,6 +217,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * <p>
      * The size of a message only measured by message body, so it's not accurate
      * 是 topic级别缓存大小限制，取值范围 [1, 1024]，默认是100Mib,如果设置了这个参数，queue的缓存大小更新为pullThresholdSizeForTopic / currentQueueCount 限制总大小 / 队列数
+     * @see DefaultMQPushConsumerImpl#pullMessage(org.apache.rocketmq.client.impl.consumer.PullRequest) 中的逻辑
      */
     private int pullThresholdSizeForQueue = 100;
 
@@ -238,8 +253,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     /**
      * Batch consumption size
-     * 消息并发消费时一次消费消息条数，通俗点说就是每次传入MessageListener#
+     * 消息消费时一次消费消息条数，
      * 取值范围: [1, 1024]
+     * @see ConsumeMessageConcurrentlyService#submitConsumeRequest(java.util.List, org.apache.rocketmq.client.impl.consumer.ProcessQueue, org.apache.rocketmq.common.message.MessageQueue, boolean)
+     * @see ConsumeMessageOrderlyService.ConsumeRequest#run()
      */
     private int consumeMessageBatchMaxSize = 1;
 
@@ -247,6 +264,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Batch pull size
      * 每次消息拉取所拉取的条数，默认32条。
      * 取值范围: [1, 1024]
+     * @see DefaultMQPushConsumerImpl#pullMessage(org.apache.rocketmq.client.impl.consumer.PullRequest)
      */
     private int pullBatchSize = 32;
 
@@ -268,9 +286,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      *
      * If messages are re-consumed more than {@link #maxReconsumeTimes} before success, it's be directed to a deletion
      * queue waiting.
-     * 最大消息重试次数，如果消息消费次数超过maxReconsumeTimes还没成功，则将该消息转移到一个失败队列，等待被删除。
+     * 最大消息重试次数，如果消息消费次数超过maxReconsumeTimes还没成功，则将该消息转移到一个DLQ（死信）队列
+     * 顺序消费通过下面逻辑获取
      * @see ConsumeMessageOrderlyService#getMaxReconsumeTimes()
-     * -1标识最大消息重试次数为Integer.MAX_VALUE
+     * 并发消费通过下面逻辑获取
+     * @see DefaultMQPushConsumerImpl#getMaxReconsumeTimes()
      */
     private int maxReconsumeTimes = -1;
 
@@ -283,6 +303,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Maximum amount of time in minutes a message may block the consuming thread.
      * 消息消费超时时间，默认为15分钟
+     * @see ConsumeMessageConcurrentlyService.ConsumeRequest#run()
      */
     private long consumeTimeout = 15;
 

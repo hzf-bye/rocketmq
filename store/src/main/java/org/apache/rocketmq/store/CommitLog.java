@@ -70,6 +70,10 @@ public class CommitLog {
      */
     private final MappedFileQueue mappedFileQueue;
     private final DefaultMessageStore defaultMessageStore;
+    /**
+     * 同步刷盘{@link GroupCommitService}
+     * 异步刷盘{@link FlushRealTimeService}
+     */
     private final FlushCommitLogService flushCommitLogService;
 
     //If TransientStorePool enabled, we must flush message to FileChannel at fixed periods
@@ -146,6 +150,7 @@ public class CommitLog {
         //启动刷盘线程
         this.flushCommitLogService.start();
 
+        //当开启transientStorePoolEnable且是异步刷盘且是master broker那么需要启动提交线程
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.start();
         }
@@ -402,6 +407,7 @@ public class CommitLog {
                         }
 
                         if (delayLevel > 0) {
+                            //延迟消息 tagsCode为消息延迟级别对因的延迟时间+消息存储时间
                             tagsCode = this.defaultMessageStore.getScheduleMessageService().computeDeliverTimestamp(delayLevel,
                                 storeTimestamp);
                         }
@@ -1354,11 +1360,6 @@ public class CommitLog {
                             //当前消息没有刷盘则刷盘
                             if (!flushOK) {
                                 //刷盘
-                                /**
-                                 * 同步刷盘策略，如果开启transientStorePoolEnable机制时为什么这里也是直接刷盘，而不用先提交数据呢?
-                                 * 因为开启transientStorePoolEnable机制，会有{@link org.apache.rocketmq.store.CommitLog.CommitRealTimeService#run()}
-                                 * 线程默认每200ms执行一次提交操作，因此这里直接输盘即可。
-                                 */
                                 CommitLog.this.mappedFileQueue.flush(0);
                             }
                         }

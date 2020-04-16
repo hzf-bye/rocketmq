@@ -19,10 +19,27 @@ package org.apache.rocketmq.client.impl.consumer;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class PullRequest {
+    /**
+     * 消费者组
+     */
     private String consumerGroup;
+    /**
+     * 待拉取消费队列
+     */
     private MessageQueue messageQueue;
+    /**
+     * 消息处理队列，从Broker拉取的消息先存入processQueue，然后再提交到消费者消费线程池消费。
+     */
     private ProcessQueue processQueue;
+    /**
+     * 待拉取的messageQueue偏移量，相当于数组下标，乘以{@link org.apache.rocketmq.store.ConsumeQueue#CQ_STORE_UNIT_SIZE}
+     * 即得到consumeQueue文件的物理偏移量
+     *
+     */
     private long nextOffset;
+    /**
+     * 是否被锁定。
+     */
     private boolean lockedFirst = false;
 
     public boolean isLockedFirst() {

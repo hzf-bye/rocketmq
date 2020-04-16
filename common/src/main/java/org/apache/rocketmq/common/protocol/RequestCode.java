@@ -24,16 +24,23 @@ public class RequestCode {
      */
     public static final int SEND_MESSAGE = 10;
 
-    // Broker 订阅消息
+    /**
+     * 消费者 从Broker服务器中拉取消息。
+     */
     public static final int PULL_MESSAGE = 11;
 
     // Broker 查询消息
     public static final int QUERY_MESSAGE = 12;
     // Broker 查询Broker Offset
     public static final int QUERY_BROKER_OFFSET = 13;
-    // Broker 查询Consumer Offset
+    /**
+     * Broker 查询Consumer Offset
+     * Consumer查询ConsumerGroup下的topic下的指定消费队列的消费偏移量(ConsumeQueue中的偏移量)
+     */
     public static final int QUERY_CONSUMER_OFFSET = 14;
-    // Broker 更新Consumer Offset
+    /**
+     * 消费者向Broker更新ConsumeQueue的偏移量
+     */
     public static final int UPDATE_CONSUMER_OFFSET = 15;
     // Broker 更新或者增加一个Topic
     public static final int UPDATE_AND_CREATE_TOPIC = 17;
@@ -57,8 +64,15 @@ public class RequestCode {
     // Broker 获取Broker运行时信息
     public static final int GET_BROKER_RUNTIME_INFO = 28;
     // Broker 根据时间查询队列的Offset
+
+    /**
+     * Consumer根据消息存储时间戳查询ConsumerGroup下的topic下的指定消费队列的消费偏移量(ConsumeQueue中的偏移量)
+     */
     public static final int SEARCH_OFFSET_BY_TIMESTAMP = 29;
-    // Broker 查询队列最大Offset
+    /**
+     *
+     * Consumer查询Broker消费队列最大的偏移量
+     */
     public static final int GET_MAX_OFFSET = 30;
     // Broker 查询队列最小Offset
     public static final int GET_MIN_OFFSET = 31;
@@ -69,30 +83,44 @@ public class RequestCode {
     // Broker 根据消息ID来查询消息
     public static final int VIEW_MESSAGE_BY_ID = 33;
 
-    // Broker Client向Client发送心跳，并注册自身
+    /**
+     * Client（消费者与生产者）向Broker发送心跳，并注册自身
+     */
     public static final int HEART_BEAT = 34;
 
     // Broker Client注销
     public static final int UNREGISTER_CLIENT = 35;
 
-    // Broker Consumer将处理不了的消息发回服务器
+    /**
+     * Consumer将消费失败的的消息发回服务器
+     *
+     * 如果消息监听器返回 RECONSUME_LATER ，则需要将这些消息发送给Broker延迟消息。
+     */
     public static final int CONSUMER_SEND_MSG_BACK = 36;
 
     // Broker Commit或者Rollback事务
     public static final int END_TRANSACTION = 37;
-    // Broker 获取ConsumerId列表通过GroupName
+    /**
+     * 客户端通过消费者名获取同一个消费者名下的所有客户端id
+     */
     public static final int GET_CONSUMER_LIST_BY_GROUP = 38;
 
     // Broker 主动向Producer回查事务状态
     public static final int CHECK_TRANSACTION_STATE = 39;
 
-    // Broker Broker通知Consumer列表变化
+    /**
+     * Broker Broker通知Consumer列表变化，Consumer立马进行消息消费队列的重新负载均衡
+     */
     public static final int NOTIFY_CONSUMER_IDS_CHANGED = 40;
 
-    // Broker Consumer向Master锁定队列
+    /**
+     * 顺序消费时，消费者向master Broker锁定消息消费队列
+     */
     public static final int LOCK_BATCH_MQ = 41;
 
-    // Broker Consumer向Master解锁队列
+    /**
+     * 顺序消费时，消费者向master Broker解锁消息消费队列的请求参数
+     */
     public static final int UNLOCK_BATCH_MQ = 42;
     // Broker 获取所有Consumer Offset
     public static final int GET_ALL_CONSUMER_OFFSET = 43;
@@ -130,6 +158,9 @@ public class RequestCode {
 
     // Namesrv 获取注册到Name Server的所有Broker集群信息
     public static final int GET_BROKER_CLUSTER_INFO = 106;
+    /**
+     * 更新或者创建消费组配置信息。不管之前Broker有没有缓存，都以当前为准
+     */
     public static final int UPDATE_AND_CREATE_SUBSCRIPTIONGROUP = 200;
     public static final int GET_ALL_SUBSCRIPTIONGROUP_CONFIG = 201;
     public static final int GET_TOPIC_STATS_INFO = 202;

@@ -147,27 +147,32 @@ public class RebalancePushImpl extends RebalanceImpl {
             case CONSUME_FROM_MIN_OFFSET:
             case CONSUME_FROM_MAX_OFFSET:
             case CONSUME_FROM_LAST_OFFSET: {
+                //从Broker中获取当前队列的偏移量
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
                 if (lastOffset >= 0) {
                     result = lastOffset;
                 }
                 // First start,no offset
+                //如果返回-1，标识该消费队列刚创建
                 else if (-1 == lastOffset) {
                     if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         result = 0L;
                     } else {
                         try {
+                            //返回消费队列中的最大偏移量
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
                             result = -1;
                         }
                     }
                 } else {
+                    //小于-1，说明Broker存储了错误的偏移量，返回-1
                     result = -1;
                 }
                 break;
             }
             case CONSUME_FROM_FIRST_OFFSET: {
+                //从Broker中获取当前队列的偏移量
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
                 if (lastOffset >= 0) {
                     result = lastOffset;
@@ -179,6 +184,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                 break;
             }
             case CONSUME_FROM_TIMESTAMP: {
+                //从Broker中获取当前队列的偏移量
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
                 if (lastOffset >= 0) {
                     result = lastOffset;
@@ -191,8 +197,10 @@ public class RebalancePushImpl extends RebalanceImpl {
                         }
                     } else {
                         try {
+                            //返回lastOffset==-1
                             long timestamp = UtilAll.parseDate(this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeTimestamp(),
                                 UtilAll.YYYYMMDDHHMMSS).getTime();
+                            //去Broker查找消息存储时间最接近timestamp的消息，如果能找到则返回找到的偏移量，否则返回0
                             result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                         } catch (MQClientException e) {
                             result = -1;

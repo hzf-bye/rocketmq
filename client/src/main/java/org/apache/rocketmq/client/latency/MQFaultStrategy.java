@@ -33,6 +33,7 @@ public class MQFaultStrategy {
      * 是否启用Broker故障延迟机制
      * false-不启用
      * true-启用
+     * @see MQFaultStrategy#selectOneMessageQueue(org.apache.rocketmq.client.impl.producer.TopicPublishInfo, java.lang.String)
      */
     private boolean sendLatencyFaultEnable = false;
 
@@ -73,7 +74,7 @@ public class MQFaultStrategy {
      */
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
         //是否启用Broker故障延迟机制
-        //此机制如果在某一次发送消息后Broker故障，那么在后续能自动将Broker排除在消息队列选择外，避免不必要的开销。
+        //此机制如果在某一次发送消息后Broker故障，那么在后续能自动将此Broker排除在消息队列选择外，避免不必要的开销。
         /*
          * 那么为什么Broke故障后路由信息中还会有此Broker的路由信息呢？
          * 1.NameServer检测Broker是否可用是延迟的，最短为10s一次的心跳检测。
@@ -133,13 +134,13 @@ public class MQFaultStrategy {
 
         //不启用，默认机制
         /*
-         * 此机制在某一次消息的发送后面的重试逻辑中，能规避故障的Broker,
+         * 此机制在某一次消息的发送后面的重试逻辑中，能规避故障的Broker,因为再某次失败重试的过程中有lastBrokerName会规避故障的Broker
          * 但是如果Broker宕机，由于messageQueueList是按照Broker排序的，
-         * 如果上一次发消息时选择是宕机的Broker的第一个队列，那么随后一次发消息选择的可能就是宕机的Broker的第二个队列
+         * 如果上一次发消息时选择是宕机的Broker的第一个队列，那么随后一次发消息（独立的另一个消息）选择的可能就是宕机的Broker的第二个队列
          * 那么第一次发送消息还是会发送失败，
          * 再次引发重试才能规避此Broker，带来不必要的性能损耗。
          *
-         * 注意上面所说的某一次发消息时独立的两次发消息而不是一次消息中的第一次发送以及第二次重试。
+         *
          */
         return tpInfo.selectOneMessageQueue(lastBrokerName);
     }

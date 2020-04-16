@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client;
 
+import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
@@ -41,6 +42,8 @@ public class ClientConfig {
     private int heartbeatBrokerInterval = 1000 * 30;
     /**
      * Offset persistent interval for consumer
+     * @see MQClientInstance#persistAllConsumerOffset()
+     * 持久化客户端消息消费进度的定时任务的执行间隔时间
      */
     private int persistConsumerOffsetInterval = 1000 * 5;
     private boolean unitMode = false;

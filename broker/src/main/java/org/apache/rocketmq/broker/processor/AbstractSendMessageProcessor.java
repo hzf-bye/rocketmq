@@ -55,6 +55,9 @@ import java.util.Random;
 public abstract class AbstractSendMessageProcessor implements NettyRequestProcessor {
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
+    /**
+     * DLQ队列默认队列数量
+     */
     protected final static int DLQ_NUMS_PER_GROUP = 1;
     protected final BrokerController brokerController;
     protected final Random random = new Random(System.currentTimeMillis());

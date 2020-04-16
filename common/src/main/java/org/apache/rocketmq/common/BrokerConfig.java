@@ -45,6 +45,7 @@ public class BrokerConfig {
     /**
      * 当topic没有预先创建时。
      * 在Producer发消息时是否自动创建topic
+     * @see org.apache.rocketmq.broker.processor.AbstractSendMessageProcessor#msgCheck(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader, org.apache.rocketmq.remoting.protocol.RemotingCommand)
      */
     @ImportantField
     private boolean autoCreateTopicEnable = true;
@@ -52,6 +53,11 @@ public class BrokerConfig {
     private boolean clusterTopicEnable = true;
 
     private boolean brokerTopicEnable = true;
+    /**
+     * 是否自动创建消费组配置信息
+     * @see org.apache.rocketmq.broker.subscription.SubscriptionGroupManager#findSubscriptionGroupConfig(java.lang.String)
+     * @see org.apache.rocketmq.broker.processor.ClientManageProcessor#heartBeat(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+     */
     @ImportantField
     private boolean autoCreateSubscriptionGroup = true;
     private String messageStorePlugIn = "";
@@ -97,8 +103,16 @@ public class BrokerConfig {
      */
     private boolean longPollingEnable = true;
 
+    /**
+     * @see BrokerConfig#longPollingEnable 为false时
+     * 服务器端默认持有请求的时间，即1s
+     */
     private long shortPollingTimeMills = 1000;
 
+    /**
+     * 当有新的消费者或者消费组订阅信息变化时时是否立马通知客户端进行消息队列的负载均衡
+     * @see org.apache.rocketmq.broker.client.ConsumerManager#registerConsumer(java.lang.String, org.apache.rocketmq.broker.client.ClientChannelInfo, org.apache.rocketmq.common.protocol.heartbeat.ConsumeType, org.apache.rocketmq.common.protocol.heartbeat.MessageModel, org.apache.rocketmq.common.consumer.ConsumeFromWhere, java.util.Set, boolean)
+     */
     private boolean notifyConsumerIdsChangedEnable = true;
 
     private boolean highSpeedMode = false;
@@ -115,6 +129,10 @@ public class BrokerConfig {
     private String regionId = MixAll.DEFAULT_TRACE_REGION_ID;
     private int registerBrokerTimeoutMills = 6000;
 
+    /**
+     * 从节点是否可读
+     * @see org.apache.rocketmq.broker.processor.PullMessageProcessor#processRequest(io.netty.channel.Channel, org.apache.rocketmq.remoting.protocol.RemotingCommand, boolean)
+     */
     private boolean slaveReadEnable = false;
 
     private boolean disableConsumeIfConsumerReadSlowly = false;
@@ -145,6 +163,10 @@ public class BrokerConfig {
     private long filterDataCleanTimeSpan = 24 * 3600 * 1000;
 
     // whether do filter when retry.
+    /**
+     * 是否支持重试消息的topic过滤
+     * @see org.apache.rocketmq.broker.processor.PullMessageProcessor#processRequest(io.netty.channel.Channel, org.apache.rocketmq.remoting.protocol.RemotingCommand, boolean)
+     */
     private boolean filterSupportRetry = false;
     private boolean enablePropertyFilter = false;
 

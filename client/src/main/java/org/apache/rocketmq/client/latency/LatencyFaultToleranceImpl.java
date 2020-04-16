@@ -109,7 +109,9 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
          */
         private final String name;
         /**
-         * 本次消息发送延迟
+         * 本次消息发送延迟时间，消息发送失败时根据此延迟时间计算此Broker需要规避的时长
+         * @see MQFaultStrategy#latencyMax
+         * @see MQFaultStrategy#updateFaultItem(java.lang.String, long, boolean)
          */
         private volatile long currentLatency;
         /**

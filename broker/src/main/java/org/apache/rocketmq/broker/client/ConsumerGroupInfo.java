@@ -24,6 +24,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -34,13 +36,31 @@ import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
 public class ConsumerGroupInfo {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    /**
+     * 消费组名
+     */
     private final String groupName;
+    /**
+     * topic订阅关系
+     */
     private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
         new ConcurrentHashMap<String, SubscriptionData>();
+    /**
+     * 客户端Channel以及客户端信息
+     */
     private final ConcurrentMap<Channel, ClientChannelInfo> channelInfoTable =
         new ConcurrentHashMap<Channel, ClientChannelInfo>(16);
+    /**
+     * @see ConsumeType
+     */
     private volatile ConsumeType consumeType;
+    /**
+     * @see MessageModel
+     */
     private volatile MessageModel messageModel;
+    /**
+     * @see DefaultMQPushConsumer#consumeFromWhere
+     */
     private volatile ConsumeFromWhere consumeFromWhere;
     private volatile long lastUpdateTimestamp = System.currentTimeMillis();
 
