@@ -167,6 +167,9 @@ public class RequestCode {
     public static final int UPDATE_AND_CREATE_SUBSCRIPTIONGROUP = 200;
     public static final int GET_ALL_SUBSCRIPTIONGROUP_CONFIG = 201;
     public static final int GET_TOPIC_STATS_INFO = 202;
+    /**
+     * 根据consumeGroup获取消费组信息
+     */
     public static final int GET_CONSUMER_CONNECTION_LIST = 203;
     /**
      * 获取生产者组 信息
@@ -179,7 +182,9 @@ public class RequestCode {
     public static final int GET_ALL_TOPIC_LIST_FROM_NAMESERVER = 206;
     // 从Broker删除订阅组
     public static final int DELETE_SUBSCRIPTIONGROUP = 207;
-    // 从Broker获取消费状态（进度）
+    /**
+     * 从Broker获取消费组的消费进度
+     */
     public static final int GET_CONSUME_STATS = 208;
     // Suspend Consumer消费过程
     public static final int SUSPEND_CONSUMER = 209;
