@@ -176,6 +176,12 @@ public class BrokerController {
     private ExecutorService clientManageExecutor;
     private ExecutorService heartbeatExecutor;
     private ExecutorService consumerManageExecutor;
+    /**
+     * 如果当前是slave broker且配置文件中没有指定master broker 地址那么
+     * updateMasterHAServerAddrPeriodically为true，那么在
+     * broker向namesrv心跳检测后需要更新master broker 地址
+     * @see BrokerController#doRegisterBrokerAll(boolean, boolean, org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper)
+     */
     private boolean updateMasterHAServerAddrPeriodically = false;
     private BrokerStats brokerStats;
     private InetSocketAddress storeHost;
@@ -435,8 +441,11 @@ public class BrokerController {
                 }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
             }
 
+            //当前角色是Slave时
             if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
+                //如果当前Broker配置中指定了haMasterAddress,则赋值 HAClient 的 masterAddress
                 if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= 6) {
+                    // 将haMasterAddress的值设置到 HAService 的 HAClient 的masterAddress中
                     this.messageStore.updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
                     this.updateMasterHAServerAddrPeriodically = false;
                 } else {
@@ -935,7 +944,12 @@ public class BrokerController {
         if (registerBrokerResultList.size() > 0) {
             RegisterBrokerResult registerBrokerResult = registerBrokerResultList.get(0);
             if (registerBrokerResult != null) {
+                /**
+                 * 如果Slave在配置时没有指定Master的IP，那么updateMasterHAServerAddrPeriodically为true
+                 * //如果当前broker不是master，那么haServerAddr中保存master broker主从同步地址 ip+port
+                 */
                 if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
+                    // Slave在注册Broker时,Namesrv会将Master的BrokerAddr返回来,更新HAClient上的 masterAddress
                     this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
                 }
 
@@ -974,6 +988,9 @@ public class BrokerController {
         this.topicConfigManager = topicConfigManager;
     }
 
+    /**
+     * 获取主从同步 ip+port
+     */
     public String getHAServerAddr() {
         return this.brokerConfig.getBrokerIP2() + ":" + this.messageStoreConfig.getHaListenPort();
     }

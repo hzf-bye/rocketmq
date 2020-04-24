@@ -69,6 +69,8 @@ public class SubscriptionGroupConfig {
      * 当Broker建议下一次从Broker从节点拉取消息时，
      * whichBrokerWhenConsumeSlowly指定从哪个从节点拉取
      * 默认值1，即表示从brokerId=1的从节点拉取
+     *
+     * 当一个master有多台salva服务器，那么参与消息负载拉取的从服务器指挥室其中一个。
      * 设置
      * @see org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand#execute(org.apache.commons.cli.CommandLine, org.apache.commons.cli.Options, org.apache.rocketmq.remoting.RPCHook)
      * 可以通过mqadmin命令修改

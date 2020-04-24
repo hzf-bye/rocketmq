@@ -17,9 +17,17 @@
 
 package org.apache.rocketmq.broker;
 
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
+import org.apache.rocketmq.broker.topic.TopicConfigManager;
+
 import java.io.File;
 
 public class BrokerPathConfigHelper {
+
+    /**
+     * broker配置文件默认地址
+     */
     private static String brokerConfigPath = System.getProperty("user.home") + File.separator + "store"
         + File.separator + "config" + File.separator + "broker.properties";
 
@@ -31,14 +39,26 @@ public class BrokerPathConfigHelper {
         brokerConfigPath = path;
     }
 
+    /**
+     * topic对应的信息持久化文件
+     * @see TopicConfigManager#topicConfigTable
+     */
     public static String getTopicConfigPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "topics.json";
     }
 
+    /**
+     * 消费组消费进度持久化文件
+     * @see ConsumerOffsetManager#offsetTable
+     */
     public static String getConsumerOffsetPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "consumerOffset.json";
     }
 
+    /**
+     * 消费组配置信息持久化文件
+     * @see SubscriptionGroupManager#subscriptionGroupTable
+     */
     public static String getSubscriptionGroupPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "subscriptionGroup.json";
     }

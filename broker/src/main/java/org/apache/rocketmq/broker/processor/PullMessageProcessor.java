@@ -300,7 +300,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             if (this.brokerController.getBrokerConfig().isSlaveReadEnable()) {
                 // consume too slow ,redirect to another machine
                 if (getMessageResult.isSuggestPullingFromSlave()) {
-                    //并且建议从从服务器读取，则从当消息消费缓慢时消息消费组建议的whichBrokerWhenConsumeSlowly指定的Broker拉取，由订阅组配置属性whichBrokerWhenConsumeSlowly决定，而whichBrokerWhenConsumeSlowly的值也可以通过mqadmin命令设置
+                    //并且建议从从服务器读取，则从当消息消费缓慢时消息消费组建议的whichBrokerWhenConsumeSlowly指定的Broker拉取，
+                    // 由订阅组配置属性whichBrokerWhenConsumeSlowly决定，而whichBrokerWhenConsumeSlowly的值也可以通过mqadmin命令设置
                     responseHeader.setSuggestWhichBrokerId(subscriptionGroupConfig.getWhichBrokerWhenConsumeSlowly());
                 }
                 // consume ok

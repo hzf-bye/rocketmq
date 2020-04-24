@@ -37,6 +37,8 @@ public class MessageConst {
     /**
      * 如果是同步刷盘的策略是否等消息存储完成后再返回结果
      * @see org.apache.rocketmq.store.CommitLog#handleDiskFlush(org.apache.rocketmq.store.AppendMessageResult, org.apache.rocketmq.store.PutMessageResult, org.apache.rocketmq.common.message.MessageExt)
+     * 如果当前Broker是同步双写Broke{@link org.apache.rocketmq.store.config.MessageStoreConfig#brokerRole}是否等消息存储完成后再返回结果
+     * @see org.apache.rocketmq.store.CommitLog#handleHA(org.apache.rocketmq.store.AppendMessageResult, org.apache.rocketmq.store.PutMessageResult, org.apache.rocketmq.common.message.MessageExt)
      * @see Message#isWaitStoreMsgOK() 未设置默的话默认true
      */
     public static final String PROPERTY_WAIT_STORE_MSG_OK = "WAIT";
@@ -56,19 +58,31 @@ public class MessageConst {
      * 当是延迟消息时需要将消息的真实topic存储到消息的扩展属性中，
      * PROPERTY_REAL_TOPIC为对应的key
      * {@link org.apache.rocketmq.store.CommitLog#putMessage(org.apache.rocketmq.store.MessageExtBrokerInner)}
+     *
+     * 当是事务消息时需要将消息的真实topic存储到消息的扩展属性中，
+     * {@link org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge#parseHalfMessageInner(org.apache.rocketmq.store.MessageExtBrokerInner)}
      */
     public static final String PROPERTY_REAL_TOPIC = "REAL_TOPIC";
     /**
      * 当是延迟消息时需要将消息的真实队列ID存储到消息的扩展属性中，
      * PROPERTY_REAL_QUEUE_ID为对应的key
      * @see org.apache.rocketmq.store.CommitLog#putMessage(org.apache.rocketmq.store.MessageExtBrokerInner)
+     *
+     * 当是事务消息时需要将消息的真实队列ID存储到消息的扩展属性中，
+     * {@link org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge#parseHalfMessageInner(org.apache.rocketmq.store.MessageExtBrokerInner)}
      */
     public static final String PROPERTY_REAL_QUEUE_ID = "REAL_QID";
     /**
+     * @see org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl#sendMessageInTransaction(org.apache.rocketmq.common.message.Message, org.apache.rocketmq.client.producer.TransactionListener, java.lang.Object)
+     * 中赋值
      *  message.getProperty(MessageConst.PROPERTY_TRANSACTION_PREPARED);
      *  如果得到true(忽略大小写，那么代表事务PREPARED消息)
      */
     public static final String PROPERTY_TRANSACTION_PREPARED = "TRAN_MSG";
+    /**
+     * @see org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl#sendMessageInTransaction(org.apache.rocketmq.common.message.Message, org.apache.rocketmq.client.producer.TransactionListener, java.lang.Object)
+     * 事务消息所属消息生产者组，设置消息生产者组的目的是在查询事务消息本地事务状态时，从该生产者组中随机选择一个消息生产者即可。
+     */
     public static final String PROPERTY_PRODUCER_GROUP = "PGROUP";
     /**
      * 消息消费队列文件（ConsumeQueue）中的最小偏移量
@@ -97,6 +111,7 @@ public class MessageConst {
     /**
      * 消息唯一Id的key
      * {@link MessageClientIDSetter#setUniqID(org.apache.rocketmq.common.message.Message)}
+     * {@link org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl#sendKernelImpl(org.apache.rocketmq.common.message.Message, org.apache.rocketmq.common.message.MessageQueue, org.apache.rocketmq.client.impl.CommunicationMode, org.apache.rocketmq.client.producer.SendCallback, org.apache.rocketmq.client.impl.producer.TopicPublishInfo, long)}
      */
     public static final String PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX = "UNIQ_KEY";
     /**
@@ -105,6 +120,10 @@ public class MessageConst {
     public static final String PROPERTY_MAX_RECONSUME_TIMES = "MAX_RECONSUME_TIMES";
     public static final String PROPERTY_CONSUME_START_TIMESTAMP = "CONSUME_START_TIME";
     public static final String PROPERTY_TRANSACTION_PREPARED_QUEUE_OFFSET = "TRAN_PREPARED_QUEUE_OFFSET";
+    /**
+     * 事务消息的回查次数，消息属性中的key
+     * @see org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl#needDiscard(org.apache.rocketmq.common.message.MessageExt, int)
+     */
     public static final String PROPERTY_TRANSACTION_CHECK_TIMES = "TRANSACTION_CHECK_TIMES";
     public static final String PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS = "CHECK_IMMUNITY_TIME_IN_SECONDS";
 

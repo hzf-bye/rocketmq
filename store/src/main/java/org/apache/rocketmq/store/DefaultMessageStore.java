@@ -703,7 +703,6 @@ public class DefaultMessageStore implements MessageStore {
                              * 如果超过isInDisk==true，说明拉取的消息在磁盘中
                              * isInDisk==false，说明拉取的消息在内存中
                              *
-                             * 如果isInDisk为true，那么在isTheBatchFull方法中判断，本次允许拉取的消息会比较少，这是为啥？
                              */
                             boolean isInDisk = checkInDiskByCommitOffset(offsetPy, maxOffsetPy);
 
@@ -783,7 +782,10 @@ public class DefaultMessageStore implements MessageStore {
                         long diff = maxOffsetPy - maxPhyOffsetPulling;
                         long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE
                             * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
-                        //diff > memory说明待拉取的消息已经在磁盘中了，那么建议下一次拉取任务从Broker从节点拉取。
+                        /**
+                         * diff > memory表示贷拉取的所有消息已经超出了常驻内存的大小，且因为旧消息会被置换至内存说明待拉取的消息已经在磁盘中了，
+                         * 表示主服务器繁忙，那么建议下一次拉取任务从Broker从节点拉取。
+                         */
                         getResult.setSuggestPullingFromSlave(diff > memory);
                     } finally {
 
@@ -1345,7 +1347,7 @@ public class DefaultMessageStore implements MessageStore {
      * @param maxMsgNums 本次拉取目标消息条数
      * @param bufferTotal 已拉取消息字节总长度，不包含当前消息
      * @param messageTotal 已拉取消息总条数
-     * @param isInDisk 当前消息是否存在于磁盘中
+     * @param isInDisk 当前消息是否存在于磁盘中，从磁盘中获取消息比较慢，因此获取的消息数量也会下降
      */
     private boolean isTheBatchFull(int sizePy, int maxMsgNums, int bufferTotal, int messageTotal, boolean isInDisk) {
 
@@ -1757,7 +1759,7 @@ public class DefaultMessageStore implements MessageStore {
             //文件保留时间，如果超过了该时间，则认为是过期时间，可以被删除，默认72小时
             // 也就是最后一次文件更新时间到现在的时间超过72小时，可以被删除
             long fileReservedTime = DefaultMessageStore.this.getMessageStoreConfig().getFileReservedTime();
-            // 删除物理文件的间隔，因为在一次清楚过程中，可能需要被删除的文件不止一个，该值指定两次删除文件的时间间隔。默认100ms
+            // 删除物理文件的间隔，因为在一次清除过程中，可能需要被删除的文件不止一个，该值指定两次删除文件的时间间隔。默认100ms
             int deletePhysicFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteCommitLogFilesInterval();
             /**
              * 在清除过期文件时。如果该文件被其它线程所占用（引用次数大于0，比如读取消息），此时会阻止此次删除任务，同时再第一次删除时记录当前时间戳，

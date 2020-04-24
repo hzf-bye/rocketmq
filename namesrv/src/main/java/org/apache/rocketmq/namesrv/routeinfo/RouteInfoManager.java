@@ -832,6 +832,10 @@ class BrokerLiveInfo {
     private long lastUpdateTimestamp;
     private DataVersion dataVersion;
     private Channel channel;
+    /**
+     * master broker监听的主从同步地址
+     * @see org.apache.rocketmq.broker.BrokerController#getHAServerAddr()
+     */
     private String haServerAddr;
 
     public BrokerLiveInfo(long lastUpdateTimestamp, DataVersion dataVersion, Channel channel,

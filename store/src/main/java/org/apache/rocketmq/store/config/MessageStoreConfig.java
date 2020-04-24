@@ -24,6 +24,8 @@ import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.TransientStorePool;
+import org.apache.rocketmq.store.ha.HAConnection;
+import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.schedule.ScheduleMessageService;
 
 /**
@@ -233,6 +235,8 @@ public class MessageStoreConfig {
     private int maxTransferCountOnMessageInDisk = 8;
     /**
      * 内存使用率，默认40%
+     * 40%表示rocketmq常驻内存的消息的大小
+     * rocketmq中消息超过服务器内存的40%将会旧的消息置换会磁盘
      * @see DefaultMessageStore#checkInDiskByCommitOffset(long, long)
      */
     @ImportantField
@@ -254,12 +258,35 @@ public class MessageStoreConfig {
     private int maxMsgsNumBatch = 64;
     @ImportantField
     private boolean messageIndexSafe = false;
+    /**
+     * 主从同步、master broker监听端口号
+     * @see HAService#HAService(org.apache.rocketmq.store.DefaultMessageStore)
+     */
     private int haListenPort = 10912;
+    /**
+     * master与slave的HA心跳间隔
+     * @see HAService.HAClient#isTimeToReportOffset()
+     * @see HAConnection.WriteSocketService#run()
+     */
     private int haSendHeartbeatInterval = 1000 * 5;
+    /**
+     * 如果slave 20s还未收到master发送的数据，那么需要关闭与master的链接
+     * @see HAService.HAClient#isTimeToReportOffset()
+     */
     private int haHousekeepingInterval = 1000 * 20;
+    /**
+     * HA传输一次同步任务最大传输的字节数，默认32kb
+     * @see HAConnection.WriteSocketService#run()
+     */
     private int haTransferBatchSize = 1024 * 32;
     @ImportantField
     private String haMasterAddress = null;
+    /**
+     * 当生产者发送消息时，判断从服务器有没有挂的依据
+     * 当生产者发送消息的消息最后一个字节的物理偏移量与同步到从服务器的消息物理偏移量但与等于haSlaveFallbehindMax，
+     * 则认为从服务器挂了。
+     * @see org.apache.rocketmq.store.ha.HAService#isSlaveOK(long)
+     */
     private int haSlaveFallbehindMax = 1024 * 1024 * 256;
     @ImportantField
     private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
@@ -272,7 +299,9 @@ public class MessageStoreConfig {
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
 
     /**
-     * 同步刷盘时的超时时间
+     * 同步刷盘或者主从同步复制时的超时时间
+     * @see CommitLog#handleDiskFlush(org.apache.rocketmq.store.AppendMessageResult, org.apache.rocketmq.store.PutMessageResult, org.apache.rocketmq.common.message.MessageExt)
+     * @see CommitLog#handleHA(org.apache.rocketmq.store.AppendMessageResult, org.apache.rocketmq.store.PutMessageResult, org.apache.rocketmq.common.message.MessageExt)
      */
     private int syncFlushTimeout = 1000 * 5;
     /**

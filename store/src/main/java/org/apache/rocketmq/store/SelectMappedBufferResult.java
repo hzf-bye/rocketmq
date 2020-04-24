@@ -28,6 +28,8 @@ public class SelectMappedBufferResult {
     /**
      * 内存映射Buffer
      * 读Buffer即为此次需要的数据
+     *
+     * position至limit间的数据即为存储的消息。
      */
     private final ByteBuffer byteBuffer;
 

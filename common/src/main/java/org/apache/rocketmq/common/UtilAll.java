@@ -247,9 +247,9 @@ public class UtilAll {
         return d;
     }
 
-    public static void main1(String[] args) {
+    public static void main(String[] args) {
 
-        byte[] bytes = string2bytes("C0A8006B00002A9F0000000000000CA3");
+        byte[] bytes = string2bytes("0A644A05000D777745716840323500FB");
         ByteBuffer byteBuffer = ByteBuffer.allocate(16);
         byteBuffer.put(bytes);
         byteBuffer.flip();
@@ -257,7 +257,8 @@ public class UtilAll {
         byteBuffer.get(address);
         //输出本地主机的原始IP地址
         System.out.println(Arrays.toString(address));
-        System.out.println(byteBuffer.getInt());
+        System.out.println(byteBuffer.getShort());
+        System.out.println(byteBuffer.getShort());
         System.out.println(byteBuffer.getLong());
 
     }

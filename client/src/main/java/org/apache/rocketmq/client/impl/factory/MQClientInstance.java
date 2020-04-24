@@ -57,10 +57,7 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.stat.ConsumerStatsManager;
-import org.apache.rocketmq.common.MQVersion;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.ServiceState;
-import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.*;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -652,6 +649,13 @@ public class MQClientInstance {
                         topicRouteData = this.mQClientAPIImpl.getDefaultTopicRouteInfoFromNameServer(defaultMQProducer.getCreateTopicKey(),
                             1000 * 3);
                         if (topicRouteData != null) {
+                            /**
+                             * 如果开启了自动创建topic{@link BrokerConfig#autoCreateTopicEnable}
+                             * 获取到了默认topic{@link org.apache.rocketmq.common.MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC}信息，
+                             * 而默认topic的读写队列是8
+                             * @see org.apache.rocketmq.broker.topic.TopicConfigManager#TopicConfigManager(org.apache.rocketmq.broker.BrokerController)
+                             * 这里将会改为生产者的默认读写队列4
+                             */
                             for (QueueData data : topicRouteData.getQueueDatas()) {
                                 int queueNums = Math.min(defaultMQProducer.getDefaultTopicQueueNums(), data.getReadQueueNums());
                                 data.setReadQueueNums(queueNums);

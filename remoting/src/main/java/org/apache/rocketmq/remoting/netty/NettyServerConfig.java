@@ -23,7 +23,9 @@ public class NettyServerConfig implements Cloneable {
 
     /**
      * NameServer监听端口，该值默认会被初始化为9876
-     * org.apache.rocketmq.namesrv.NamesrvStartup#createNamesrvController(java.lang.String[])中
+     * @see org.apache.rocketmq.namesrv.NamesrvStartup#createNamesrvController(java.lang.String[])
+     * Broker监听端口，该值默认会被初始化为10911
+     * @see org.apache.rocketmq.broker.BrokerStartup#createBrokerController(java.lang.String[])
      */
     private int listenPort = 8888;
 

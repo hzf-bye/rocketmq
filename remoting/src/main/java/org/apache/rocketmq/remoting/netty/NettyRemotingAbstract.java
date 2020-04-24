@@ -78,6 +78,10 @@ public abstract class NettyRemotingAbstract {
     /**
      * This container holds all processors per request code, aka, for each incoming request, we may look up the
      * responding processor in this map to handle the request.
+     * key {@link org.apache.rocketmq.common.protocol.RequestCode}
+     *
+     * @see org.apache.rocketmq.broker.BrokerController#registerProcessor()
+     * 中初始化
      */
     protected final HashMap<Integer/* request code */, Pair<NettyRequestProcessor, ExecutorService>> processorTable =
         new HashMap<Integer, Pair<NettyRequestProcessor, ExecutorService>>(64);

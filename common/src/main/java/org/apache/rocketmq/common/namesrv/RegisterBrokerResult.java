@@ -20,6 +20,11 @@ package org.apache.rocketmq.common.namesrv;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 
 public class RegisterBrokerResult {
+
+    /**
+     * master broker监听的主从同步地址
+     * @see org.apache.rocketmq.broker.BrokerController#getHAServerAddr()
+     */
     private String haServerAddr;
     private String masterAddr;
     private KVTable kvTable;

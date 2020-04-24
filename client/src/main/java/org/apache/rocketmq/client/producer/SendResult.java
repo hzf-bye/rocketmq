@@ -17,6 +17,9 @@
 package org.apache.rocketmq.client.producer;
 
 import com.alibaba.fastjson.JSON;
+import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class SendResult {
@@ -24,10 +27,22 @@ public class SendResult {
      * @see SendStatus
      */
     private SendStatus sendStatus;
+    /**
+     * 消息唯一id，此消息在消息生成者客户端生成
+     * @see MessageClientIDSetter#setUniqID(org.apache.rocketmq.common.message.Message)
+     * @see DefaultMQProducerImpl#sendKernelImpl(org.apache.rocketmq.common.message.Message, org.apache.rocketmq.common.message.MessageQueue, org.apache.rocketmq.client.impl.CommunicationMode, org.apache.rocketmq.client.producer.SendCallback, org.apache.rocketmq.client.impl.producer.TopicPublishInfo, long)
+     */
     private String msgId;
     private MessageQueue messageQueue;
+    /**
+     * 消息在consumeQueue中的偏移量
+     */
     private long queueOffset;
     private String transactionId;
+    /**
+     * 消息id，此消息id记录了消息所在broker的ip+port，以及消息的物理偏移量。
+     * @see MessageDecoder#createMessageId(java.nio.ByteBuffer, java.nio.ByteBuffer, long)
+     */
     private String offsetMsgId;
     private String regionId;
     private boolean traceOn = true;

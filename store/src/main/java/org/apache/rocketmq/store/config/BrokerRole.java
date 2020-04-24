@@ -22,7 +22,7 @@ public enum BrokerRole {
      */
     ASYNC_MASTER,
     /**
-     *  同步双写Master
+     * 同步双写Master，即发消息后立马主从同步
      */
     SYNC_MASTER,
     /**

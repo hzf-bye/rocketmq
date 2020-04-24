@@ -14,11 +14,11 @@
 #  limitations under the License.
 
 
-listenPort=10911
+listenPort=10921
 
 
 brokerClusterName = DefaultCluster
-brokerName = broker-a
+brokerName = broker-b
 brokerId = 0
 deleteWhen = 04
 fileReservedTime = 48
@@ -37,20 +37,20 @@ flushDiskType = SYNC_FLUSH
 namesrvAddr=127.0.0.1:9876
 
 #存储路径
-storePathRootDir=/Users/hzf/Documents/java/sourcecode/rocketmq/store
+storePathRootDir=/Users/hzf/Documents/java/sourcecode/rocketmq/store1
 
 #commitLog 存储路径
-storePathCommitLog=/Users/hzf/Documents/java/sourcecode/rocketmq/store/commitlog
+storePathCommitLog=/Users/hzf/Documents/java/sourcecode/rocketmq/store1/commitlog
 
 #消费队列存储路径存储路径
-storePathConsumeQueue=/Users/hzf/Documents/java/sourcecode/rocketmq/store/consumequeue
+storePathConsumeQueue=/Users/hzf/Documents/java/sourcecode/rocketmq/store1/consumequeue
 
 #消息索引存储路径
-storePathIndex=/Users/hzf/Documents/java/sourcecode/rocketmq/store/index
+storePathIndex=/Users/hzf/Documents/java/sourcecode/rocketmq/store1/index
 
 #checkpoint 文件存储路径
-storeCheckpoint=/Users/hzf/Documents/java/sourcecode/rocketmq/store/checkpoint
+storeCheckpoint=/Users/hzf/Documents/java/sourcecode/rocketmq/store1/checkpoint
 
 #abort 文件存储路径
-abortFile=/Users/hzf/Documents/java/sourcecode/rocketmq/store/abort
+abortFile=/Users/hzf/Documents/java/sourcecode/rocketmq/store1/abort
 

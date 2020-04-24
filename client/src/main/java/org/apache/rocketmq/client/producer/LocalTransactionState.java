@@ -16,8 +16,20 @@
  */
 package org.apache.rocketmq.client.producer;
 
+/**
+ *  @see TransactionListener#executeLocalTransaction(org.apache.rocketmq.common.message.Message, java.lang.Object)
+ */
 public enum LocalTransactionState {
+    /**
+     * 事务消息提交
+     */
     COMMIT_MESSAGE,
+    /**
+     * 事务消息回滚
+     */
     ROLLBACK_MESSAGE,
+    /**
+     * 结束事务，但不做任何处理
+     */
     UNKNOW,
 }

@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.transaction.queue;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
@@ -52,6 +53,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TransactionalMessageBridge {
     private static final InternalLogger LOGGER = InnerLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
+    /**
+     * key 是事务prepare消息对应的MessageQueue，其topic是{@link MixAll#RMQ_SYS_TRANS_HALF_TOPIC}
+     *
+     * value 是事务prepare消息提交或者回滚时，将prepare消息存储到commitlog中对应的key
+     * 其topic是{@link MixAll#RMQ_SYS_TRANS_OP_HALF_TOPIC}
+     *
+     * 两个MessageQueue除了topic不一致外，其他的属性都相等
+     *
+     */
     private final ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
     private final BrokerController brokerController;
     private final MessageStore store;
@@ -71,10 +81,14 @@ public class TransactionalMessageBridge {
 
     }
 
+    /**
+     * 获取消息消费队列所缓存的消息消费进度
+     */
     public long fetchConsumeOffset(MessageQueue mq) {
         long offset = brokerController.getConsumerOffsetManager().queryOffset(TransactionalMessageUtil.buildConsumerGroup(),
             mq.getTopic(), mq.getQueueId());
         if (offset == -1) {
+            //没有缓存则获取消息消费队列中最下的偏移量，还没有则说明此消费队列中无消息返回-1
             offset = store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId());
         }
         return offset;
@@ -190,13 +204,20 @@ public class TransactionalMessageBridge {
         return store.putMessage(parseHalfMessageInner(messageInner));
     }
 
+    /**
+     * 这里是事务消息与非事务消息主要的流程区别
+     */
     private MessageExtBrokerInner parseHalfMessageInner(MessageExtBrokerInner msgInner) {
+        //备份消息的原主题与消息消费队列
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC, msgInner.getTopic());
         MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID,
             String.valueOf(msgInner.getQueueId()));
+        //清除事务标志位
         msgInner.setSysFlag(
             MessageSysFlag.resetTransactionValue(msgInner.getSysFlag(), MessageSysFlag.TRANSACTION_NOT_TYPE));
+        //将主题变更为 RMQ_SYS_TRANS_HALF_TOPIC
         msgInner.setTopic(TransactionalMessageUtil.buildHalfTopic());
+        //队列id 0
         msgInner.setQueueId(0);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
         return msgInner;
@@ -298,6 +319,7 @@ public class TransactionalMessageBridge {
      * @return This method will always return true.
      */
     private boolean addRemoveTagInTransactionOp(MessageExt messageExt, MessageQueue messageQueue) {
+        //构建消息，其消息body就是事务prepare消息对应的在consumeQueue文件中的偏移量
         Message message = new Message(TransactionalMessageUtil.buildOpTopic(), TransactionalMessageUtil.REMOVETAG,
             String.valueOf(messageExt.getQueueOffset()).getBytes(TransactionalMessageUtil.charset));
         writeOp(message, messageQueue);

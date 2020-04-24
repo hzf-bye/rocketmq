@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.transaction;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
@@ -24,6 +25,11 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * RocketMq通过TransactionalMessageCheckService去定时检测主题
+ * {@link MixAll#RMQ_SYS_TRANS_HALF_TOPIC}中的消息
+ * 回查消息的事务状态。
+ */
 public class TransactionalMessageCheckService extends ServiceThread {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
@@ -62,6 +68,7 @@ public class TransactionalMessageCheckService extends ServiceThread {
         log.info("Start transaction check service thread!");
         long checkInterval = brokerController.getBrokerConfig().getTransactionCheckInterval();
         while (!this.isStopped()) {
+            //默认1分钟检测一次
             this.waitForRunning(checkInterval);
         }
         log.info("End transaction check service thread!");
@@ -69,7 +76,9 @@ public class TransactionalMessageCheckService extends ServiceThread {
 
     @Override
     protected void onWaitEnd() {
+        //事务消息过期时间
         long timeout = brokerController.getBrokerConfig().getTransactionTimeOut();
+        //事务消息回查最大检测次数
         int checkMax = brokerController.getBrokerConfig().getTransactionCheckMax();
         long begin = System.currentTimeMillis();
         log.info("Begin to check prepare message, begin time:{}", begin);

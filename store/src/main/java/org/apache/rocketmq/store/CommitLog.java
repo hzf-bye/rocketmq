@@ -821,14 +821,20 @@ public class CommitLog {
     }
 
     public void handleHA(AppendMessageResult result, PutMessageResult putMessageResult, MessageExt messageExt) {
+        //主从同步复制
         if (BrokerRole.SYNC_MASTER == this.defaultMessageStore.getMessageStoreConfig().getBrokerRole()) {
             HAService service = this.defaultMessageStore.getHaService();
+            //主从同步复制的策略是否等消息主从同步复制完成后再返回结果
             if (messageExt.isWaitStoreMsgOK()) {
                 // Determine whether to wait
+                //判断生产者是否有必要等待，
                 if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
+                    //创建GroupCommitRequest
                     GroupCommitRequest request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
                     service.putRequest(request);
+                    //有消息到来了，通知所有等待主从复制的线程
                     service.getWaitNotifyObject().wakeupAll();
+                    //等待同步主从复制任务完成，如果超时返回刷盘错误
                     boolean flushOK =
                         request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
                     if (!flushOK) {
@@ -839,6 +845,7 @@ public class CommitLog {
                 }
                 // Slave problem
                 else {
+                    // 告诉生产者从服务器挂了。
                     // Tell the producer, slave not available
                     putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
                 }
@@ -1248,8 +1255,10 @@ public class CommitLog {
     public static class GroupCommitRequest {
 
         /**
-         * 刷盘点偏移量
-         * 本条消息在commitLog中的最大物理偏移量-1，即当前需要将nextOffset指针前的消息刷盘
+         * 刷盘点偏移量或者主从复制偏移量
+         * 本条消息在commitLog中的最大物理偏移量，即当前需要将nextOffset指针前的消息刷盘或者复制至从服务器
+         * @see CommitLog#handleDiskFlush(AppendMessageResult, PutMessageResult, MessageExt)
+         * @see CommitLog#handleHA(AppendMessageResult, PutMessageResult, MessageExt)
          */
         private final long nextOffset;
 

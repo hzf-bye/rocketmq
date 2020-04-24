@@ -73,8 +73,8 @@ public class BrokerStartup {
 
     public static void main(String[] args) {
         start(createBrokerController(args));
-        producer();
-        consumer();
+//        producer();
+//        consumer();
 
     }
 

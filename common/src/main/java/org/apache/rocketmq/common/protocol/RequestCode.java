@@ -98,7 +98,10 @@ public class RequestCode {
      */
     public static final int CONSUMER_SEND_MSG_BACK = 36;
 
-    // Broker Commit或者Rollback事务
+    /**
+     * 生产者发送结束事务命令给到broker
+     * 提交事务或者回滚事务或者 不作为的命令
+     */
     public static final int END_TRANSACTION = 37;
     /**
      * 客户端通过消费者名获取同一个消费者名下的所有客户端id
@@ -165,6 +168,10 @@ public class RequestCode {
     public static final int GET_ALL_SUBSCRIPTIONGROUP_CONFIG = 201;
     public static final int GET_TOPIC_STATS_INFO = 202;
     public static final int GET_CONSUMER_CONNECTION_LIST = 203;
+    /**
+     * 获取生产者组 信息
+     * 返回 生产者客户端id 生产者地址等
+     */
     public static final int GET_PRODUCER_CONNECTION_LIST = 204;
     public static final int WIPE_WRITE_PERM_OF_BROKER = 205;
 

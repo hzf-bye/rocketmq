@@ -28,7 +28,7 @@ public class Message implements Serializable {
     private String topic;
 
     /**
-     * 消息标记(RocketMQ对消息中的falg不做任何处理，供应用程序使用)
+     * 消息标记(RocketMQ对消息中的flag不做任何处理，供应用程序使用)
      */
     private int flag;
     /**
@@ -45,6 +45,12 @@ public class Message implements Serializable {
      * 消息体内容
      */
     private byte[] body;
+
+    /**
+     * 事务消息时的事务id，值为消息的唯一id
+     * @see MessageConst#PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX
+     * @see org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl#sendMessageInTransaction(org.apache.rocketmq.common.message.Message, org.apache.rocketmq.client.producer.TransactionListener, java.lang.Object)
+     */
     private String transactionId;
 
     public Message() {

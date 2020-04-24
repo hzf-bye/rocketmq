@@ -292,7 +292,7 @@ public class ScheduleMessageService extends ConfigManager {
 
             long result = deliverTimestamp;
 
-            //按道理 deliverTimestamp是一定消息maxTimestamp的，因为消息存储时间肯定小于now，
+            //按道理 deliverTimestamp是一定小于maxTimestamp的，因为消息存储时间肯定小于now，
             //这里是为了出现某种位特殊情况是的 消息存储时间 >= now()?，那么就返回now()?暂时不懂
             long maxTimestamp = now + ScheduleMessageService.this.delayLevelTable.get(this.delayLevel);
             if (deliverTimestamp > maxTimestamp) {

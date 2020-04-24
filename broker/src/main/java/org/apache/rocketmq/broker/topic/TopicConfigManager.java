@@ -172,7 +172,7 @@ public class TopicConfigManager extends ConfigManager {
                         return topicConfig;
 
                     /**
-                     * 如果没有则通过默认topic key(MixAll.AUTO_CREATE_TOPIC_KEY_TOPIC)获取
+                     * 如果没有则通过默认topic key{@link MixAll#AUTO_CREATE_TOPIC_KEY_TOPIC}获取
                      * defaultTopicConfig在{@link TopicConfigManager#TopicConfigManager(org.apache.rocketmq.broker.BrokerController)}构造方法中创建
                      */
                     TopicConfig defaultTopicConfig = this.topicConfigTable.get(defaultTopic);

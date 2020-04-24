@@ -64,9 +64,12 @@ public class MessageExt extends Message {
     private SocketAddress storeHost;
 
     /**
-     * 消息id
+     * 消息id 存储的是broker ip+port 以及消息物理偏移量
      * @see org.apache.rocketmq.store.CommitLog.DefaultAppendMessageCallback#doAppend(long, java.nio.ByteBuffer, int, org.apache.rocketmq.store.MessageExtBrokerInner)
      * @see MessageDecoder#createMessageId(java.nio.ByteBuffer, java.nio.ByteBuffer, long)
+     *
+     * @see MessageDecoder#decode(java.nio.ByteBuffer, boolean, boolean, boolean)
+     * 中生成
      */
     private String msgId;
 

@@ -46,6 +46,36 @@ public class BrokerConfig {
      * 当topic没有预先创建时。
      * 在Producer发消息时是否自动创建topic
      * @see org.apache.rocketmq.broker.processor.AbstractSendMessageProcessor#msgCheck(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+     *
+     *
+     * 开启自动创建topic可能带来的问题
+     *
+     * 因为开启了自动创建路由信息，消息发送者根据Topic去NameServer无法得到路由信息，
+     * 但接下来根据默认Topic从NameServer是能拿到路由信息(在每个Broker中，存在8个队列)，
+     * @see org.apache.rocketmq.broker.topic.TopicConfigManager#TopicConfigManager(org.apache.rocketmq.broker.BrokerController)
+     * 因为两个Broker在启动时都会向NameServer汇报路由信息。此时消息发送者缓存的默认topic的路由信息是2个Broker，
+     * 每个Broker默认4个队列。本来默认topic是8个读写队列的，但是在下面方法中改为4个了
+     * @see org.apache.rocketmq.client.impl.factory.MQClientInstance#updateTopicRouteInfoFromNameServer(java.lang.String, boolean, org.apache.rocketmq.client.producer.DefaultMQProducer)
+     * 消息发送者然后按照轮询机制，发送第一条消息选择(broker-a的messageQueue:0)，
+     * 向Broker发送消息，Broker服务器在处理消息时，首先会查看自己的路由配置管理器(TopicConfigManager)中的路由信息，
+     * 此时不存在对应的路由信息，然后尝试查询是否存在默认Topic的路由信息，如果存在，说明启用了autoCreateTopicEnable，
+     * 则在TopicConfigManager中创建新Topic的路由信息，此时存在与Broker服务端的内存中，然后本次消息发送结束。
+     * @see org.apache.rocketmq.broker.processor.AbstractSendMessageProcessor#msgCheck(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+     * 此时，在NameServer中还不存在新创建的Topic的路由信息。
+     *
+     * 这里有三个关键点：
+     *
+     * 1. 启用autoCreateTopicEnable创建主题时，在Broker端创建主题的时机为，消息生产者往Broker端发送消息时才会创建。
+     * 2. 然后Broker端会在一个心跳包周期内，将新创建的路由信息发送到NameServer，于此同时，Broker端还会有一个定时任务，定时将内存中的路由信息，持久化到Broker端的磁盘上。
+     *    注意这里Broker向namesrv发送心跳包后，namesrv缓存了自动创建的topic在broker-a上的路由信息，此时broker-b上还未创建此topic。
+     * 3. 消息发送者会每隔30s向NameServer更新路由信息，如果消息发送端一段时间内未发送消息（此时消息消费者从namesrv获取到的topic的路由信息中只有broker-a），
+     *    就不会有消息发送集群内的第二台Broker，那么NameServer中新创建的Topic的路由信息只会包含Broker-a，
+     *    然后消息发送者会向NameServer拉取最新的路由信息，此时就会消息发送者原本缓存了2个broker的路由信息，将会变为一个Broker的路由信息，
+     *    则该Topic的消息永远不会发送到另外一个Broker，就出现了上述现象。
+     *
+     * 原因就分析到这里了，现在我们还可以的大胆假设，开启autoCreateTopicEnable机制，什么情况会在两个Broker上都创建队列，其实，我们只需要连续快速的发送9条消息，就有可能在2个Broker上都创建队列，
+     * 因为默认topic是8个写队列，那么发送快速9条消息，根据消息队列负载均衡算法，最终会往前九个队列均发送一条消息，而第9个队列是在broker-b上，因此根据上面的逻辑
+     * broker-b上也会创建此topic的信息，心跳机制至namesrv，最终生产者就能获得两个broker的路由信息
      */
     @ImportantField
     private boolean autoCreateTopicEnable = true;
@@ -79,6 +109,11 @@ public class BrokerConfig {
 
     private int flushConsumerOffsetHistoryInterval = 1000 * 60;
 
+    /**
+     * broker是否拒绝事务消息
+     * false-不拒绝，也就是支持事务消息
+     * @see org.apache.rocketmq.broker.processor.SendMessageProcessor#sendMessage(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand, org.apache.rocketmq.broker.mqtrace.SendMessageContext, org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader)
+     */
     @ImportantField
     private boolean rejectTransactionMessage = false;
     @ImportantField
@@ -183,18 +218,26 @@ public class BrokerConfig {
     /**
      * The minimum time of the transactional message  to be checked firstly, one message only exceed this time interval
      * that can be checked.
+     * 事务过期时间，
+     * 只有当消息存储时间 + transactionTimeOut 大于系统当前时间，
+     * 才对消息执行事务状态回查，否则在下一周期中执行事务回查操作
+     * @see org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService#onWaitEnd()
      */
     @ImportantField
     private long transactionTimeOut = 3 * 1000;
 
     /**
      * The maximum number of times the message was checked, if exceed this value, this message will be discarded.
+     * 事务消息回查最大检测次数
+     * 如果超过最大检测次数还是无法获知消息的事务状态，将不会继续对消息进行事务回查，而是直接丢弃，相当于事务回滚。
+     * @see org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService#onWaitEnd()
      */
     @ImportantField
     private int transactionCheckMax = 5;
 
     /**
      * Transaction message check interval.
+     * 检测事务消息的状态的定时任务间隔
      */
     @ImportantField
     private long transactionCheckInterval = 60 * 1000;

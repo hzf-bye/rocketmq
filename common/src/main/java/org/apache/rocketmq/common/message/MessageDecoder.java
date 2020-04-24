@@ -25,10 +25,7 @@ import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class MessageDecoder {
     public final static int MSG_ID_LENGTH = 8 + 8;
@@ -68,7 +65,9 @@ public class MessageDecoder {
         input.flip();
         input.limit(MessageDecoder.MSG_ID_LENGTH);
 
+        //8字节 ip+port
         input.put(addr);
+        //8字节消息物理偏移量
         input.putLong(offset);
 
         //为了消息可读性，将字节数组转化为String
@@ -101,6 +100,37 @@ public class MessageDecoder {
         offset = bb.getLong(0);
 
         return new MessageId(address, offset);
+    }
+
+    public static void main1(String[] args) throws Exception {
+
+        byte[] ip = {10,100,74,5};
+        InetSocketAddress inetSocketAddress = new InetSocketAddress(InetAddress.getByAddress(ip), 8080);
+        ByteBuffer hostHolder = ByteBuffer.allocate(8);
+        hostHolder.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
+        hostHolder.putInt(inetSocketAddress.getPort());
+        hostHolder.flip();
+        ByteBuffer msgIdMemory = ByteBuffer.allocate(MessageDecoder.MSG_ID_LENGTH);
+        String msgId = createMessageId(msgIdMemory, hostHolder, 1000L);
+
+        decodeMessageId(msgId);
+
+    }
+
+    public static void main(String[] args) {
+
+        String msgId = "0A644A05000D77774571685080CB00FE";
+        byte[] ip = UtilAll.string2bytes(msgId.substring(0, 8));
+        byte[] port = UtilAll.string2bytes(msgId.substring(8, 16));
+        ByteBuffer bb = ByteBuffer.wrap(port);
+        int portInt = bb.getInt(0);
+
+        // offset
+        byte[] data = UtilAll.string2bytes(msgId.substring(16, 32));
+        bb = ByteBuffer.wrap(data);
+        long offset = bb.getLong(0);
+        System.out.println();
+
     }
 
     /**

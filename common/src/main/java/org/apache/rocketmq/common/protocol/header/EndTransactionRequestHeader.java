@@ -24,12 +24,26 @@ import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class EndTransactionRequestHeader implements CommandCustomHeader {
+    /**
+     * 生产者组名
+     */
     @CFNotNull
     private String producerGroup;
+    /**
+     *  消息在consumeQueue中的偏移量
+     */
     @CFNotNull
     private Long tranStateTableOffset;
+    /**
+     * 消息物理偏移量
+     */
     @CFNotNull
     private Long commitLogOffset;
+    /**
+     * @see MessageSysFlag#TRANSACTION_COMMIT_TYPE
+     * @see MessageSysFlag#TRANSACTION_ROLLBACK_TYPE
+     * @see MessageSysFlag#TRANSACTION_NOT_TYPE
+     */
     @CFNotNull
     private Integer commitOrRollback; // TRANSACTION_COMMIT_TYPE
     // TRANSACTION_ROLLBACK_TYPE
@@ -38,9 +52,17 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     @CFNullable
     private Boolean fromTransactionCheck = false;
 
+    /**
+     * 消息唯一id，此消息在消息生成者客户端生成
+     * @see MessageClientIDSetter#setUniqID(org.apache.rocketmq.common.message.Message)
+     * @see DefaultMQProducerImpl#sendKernelImpl(org.apache.rocketmq.common.message.Message, org.apache.rocketmq.common.message.MessageQueue, org.apache.rocketmq.client.impl.CommunicationMode, org.apache.rocketmq.client.producer.SendCallback, org.apache.rocketmq.client.impl.producer.TopicPublishInfo, long)
+     */
     @CFNotNull
     private String msgId;
 
+    /**
+     * 事务id
+     */
     private String transactionId;
 
     @Override
