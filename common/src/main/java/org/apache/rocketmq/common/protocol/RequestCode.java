@@ -212,7 +212,9 @@ public class RequestCode {
     // 通知 broker 调用客户端订阅消息处理
     public static final int INVOKE_BROKER_TO_GET_CONSUMER_STATUS = 223;
 
-    // Broker 查询topic被谁消费
+    /**
+     * 根据topic去broker查询对应消费组
+     */
     public static final int QUERY_TOPIC_CONSUME_BY_WHO = 300;
 
     // 获取指定集群下的所有 topic
