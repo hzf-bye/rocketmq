@@ -27,11 +27,26 @@ public class TraceContext implements Comparable<TraceContext> {
 
     private TraceType traceType;
     private long timeStamp = System.currentTimeMillis();
+    /**
+     * regionId(发送到broker所在的分区)
+     */
     private String regionId = "";
     private String regionName = "";
+    /**
+     * 生产者组名
+     */
     private String groupName = "";
+    /**
+     * 消息发送花费时间
+     */
     private int costTime = 0;
+    /**
+     * 消息是否发送成功
+     */
     private boolean isSuccess = true;
+    /**
+     * 唯一id
+     */
     private String requestId = MessageClientIDSetter.createUniqID();
     private int contextCode = 0;
     private List<TraceBean> traceBeans;

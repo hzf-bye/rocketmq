@@ -115,6 +115,7 @@ public class TraceDataEncoder {
         StringBuilder sb = new StringBuilder(256);
         switch (ctx.getTraceType()) {
             case Pub: {
+                //消息轨迹数据的协议使用字符串拼接，字段的分隔符号为1，整个数据以2结尾，
                 TraceBean bean = ctx.getTraceBeans().get(0);
                 //append the content of context and traceBean to transferBean's TransData
                 sb.append(ctx.getTraceType()).append(TraceConstants.CONTENT_SPLITOR)//

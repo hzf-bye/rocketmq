@@ -20,21 +20,53 @@ import java.util.Map;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageType;
 
 public class SendMessageContext {
+    /**
+     * 消息发送组
+     */
     private String producerGroup;
+    /**
+     * 消息
+     */
     private Message message;
+    /**
+     * 消息发送至的对列
+     */
     private MessageQueue mq;
+    /**
+     * 消息发送至的broker 地址
+     */
     private String brokerAddr;
+    /**
+     * 消息发送客户端host
+     */
     private String bornHost;
+    /**
+     * 消息发送模式 同步或者异步等
+     */
     private CommunicationMode communicationMode;
+    /**
+     * 消息发送结果
+     */
     private SendResult sendResult;
+    /**
+     * 消息发送异常时的异常信息
+     */
     private Exception exception;
+    /**
+     * 在消息发送上下文中，设置用来跟踪消息轨迹的上下环境
+     * @see SendMessageTraceHookImpl#sendMessageBefore(org.apache.rocketmq.client.hook.SendMessageContext)
+     */
     private Object mqTraceContext;
     private Map<String, String> props;
+    /**
+     * 消息发送者impl
+     */
     private DefaultMQProducerImpl producer;
     private MessageType msgType = MessageType.Normal_Msg;
     private String namespace;

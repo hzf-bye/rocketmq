@@ -170,10 +170,14 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
         //if client open the message trace feature
         if (enableMsgTrace) {
+            //开启轨迹消息
             try {
+                //异步转发消息轨迹数据
                 AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(customizedTraceTopic, rpcHook);
                 dispatcher.setHostProducer(this.defaultMQProducerImpl);
                 traceDispatcher = dispatcher;
+                //并使用AsyncTraceDispatcher用来异步转发。
+                //注册消息发送钩子函数
                 this.defaultMQProducerImpl.registerSendMessageHook(
                     new SendMessageTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
@@ -228,10 +232,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Constructor specifying producer group, enabled msgTrace flag and customized trace topic name.
      *
-     * @param producerGroup Producer group, see the name-sake field.
-     * @param enableMsgTrace Switch flag instance for message trace.
+     * @param producerGroup Producer group, see the name-sake field. 生产者所属组名。
+     * @param enableMsgTrace Switch flag instance for message trace. 是否开启跟踪消息轨迹，默认为false。
      * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
-     * trace topic name.
+     * trace topic name. 如果开启消息轨迹跟踪，用来存储消息轨迹数据所属的主题名称，默认为：RMQ_SYS_TRACE_TOPIC。
      */
     public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
         this(null, producerGroup, null, enableMsgTrace, customizedTraceTopic);
@@ -255,10 +259,14 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
         //if client open the message trace feature
         if (enableMsgTrace) {
+            //开启轨迹消息
             try {
+                //异步转发消息轨迹数据
                 AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(customizedTraceTopic, rpcHook);
                 dispatcher.setHostProducer(this.getDefaultMQProducerImpl());
                 traceDispatcher = dispatcher;
+                //并使用AsyncTraceDispatcher用来异步转发。
+                //注册消息发送钩子函数
                 this.getDefaultMQProducerImpl().registerSendMessageHook(
                     new SendMessageTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {

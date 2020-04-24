@@ -21,6 +21,7 @@ import java.util.Set;
 
 /**
  * Trace transfering bean
+ * @see TraceDataEncoder#encoderFromContextBean(org.apache.rocketmq.client.trace.TraceContext)
  */
 public class TraceTransferBean {
     private String transData;
