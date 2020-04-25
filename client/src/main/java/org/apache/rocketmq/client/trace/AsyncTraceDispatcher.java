@@ -100,6 +100,9 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private ArrayBlockingQueue<Runnable> appenderQueue;
     private volatile Thread shutDownHook;
     private volatile boolean stopped = false;
+    /**
+     * 生产者信息，记录消息发送时的轨迹信息。
+     */
     private DefaultMQProducerImpl hostProducer;
     /**
      * 消费者信息，记录消息消费时的轨迹信息。

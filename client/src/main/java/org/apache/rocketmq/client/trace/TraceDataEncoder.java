@@ -100,6 +100,33 @@ public class TraceDataEncoder {
         return resList;
     }
 
+    public static void main(String[] args) {
+
+        TraceContext traceContext1 = new TraceContext();
+        traceContext1.setTraceType(TraceType.Pub);
+        traceContext1.setTimeStamp(1L);
+        traceContext1.setRegionId("3");
+        traceContext1.setTraceBeans(new ArrayList<TraceBean>(1));
+        TraceBean traceBean1 = new TraceBean();
+        traceBean1.setMsgType(MessageType.Normal_Msg);
+        traceContext1.getTraceBeans().add(traceBean1);
+
+        TraceContext traceContext2 = new TraceContext();
+        traceContext2.setTraceType(TraceType.SubBefore);
+        traceContext2.setTimeStamp(1L);
+        traceContext2.setRegionId("3");
+        traceContext2.setTraceBeans(new ArrayList<TraceBean>(1));
+        TraceBean traceBean2 = new TraceBean();
+        traceBean2.setMsgType(MessageType.Normal_Msg);
+
+        traceContext2.getTraceBeans().add(traceBean2);
+
+
+        TraceTransferBean traceTransferBean = encoderFromContextBean(traceContext1);
+        System.out.println();
+
+    }
+
     /**
      * Encoding the trace context into data strings and keyset sets
      *
