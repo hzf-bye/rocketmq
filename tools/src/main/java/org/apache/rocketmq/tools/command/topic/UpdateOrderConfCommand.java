@@ -27,6 +27,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 创建、更新、删除顺序消息的kv配置
+ */
 public class UpdateOrderConfCommand implements SubCommand {
 
     @Override

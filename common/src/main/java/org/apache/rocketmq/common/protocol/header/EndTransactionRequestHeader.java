@@ -49,6 +49,14 @@ public class EndTransactionRequestHeader implements CommandCustomHeader {
     // TRANSACTION_ROLLBACK_TYPE
     // TRANSACTION_NOT_TYPE
 
+    /***
+     * 标识事务消息的结果是都来源于方法
+     * @see org.apache.rocketmq.client.producer.TransactionListener#checkLocalTransaction(org.apache.rocketmq.common.message.MessageExt)
+     * 返回的数据
+     *
+     * 除此之外结果还可以来源于方法
+     * @see org.apache.rocketmq.client.producer.TransactionListener#executeLocalTransaction(org.apache.rocketmq.common.message.Message, java.lang.Object)
+     */
     @CFNullable
     private Boolean fromTransactionCheck = false;
 

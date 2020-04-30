@@ -88,7 +88,7 @@ public class TransactionalMessageBridge {
         long offset = brokerController.getConsumerOffsetManager().queryOffset(TransactionalMessageUtil.buildConsumerGroup(),
             mq.getTopic(), mq.getQueueId());
         if (offset == -1) {
-            //没有缓存则获取消息消费队列中最下的偏移量，还没有则说明此消费队列中无消息返回-1
+            //没有缓存则获取消息消费队列中最小的偏移量，还没有则说明此消费队列中无消息返回-1
             offset = store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId());
         }
         return offset;

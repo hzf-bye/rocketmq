@@ -36,6 +36,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 测试所有集群消息发送响应时间
+ */
 public class CLusterSendMsgRTCommand implements SubCommand {
 
     public static void main(String args[]) {

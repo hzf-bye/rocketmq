@@ -129,6 +129,8 @@ public class HAConnection {
          * @see ReadSocketService#processReadEvent()
          * 源码中 byteBufferRead一直时处于写模式的
          * position是写指针，limit是缓冲区大小
+         *
+         * 读取的话需要通过processPostion读取
          */
         private final ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
         /**
@@ -231,16 +233,17 @@ public class HAConnection {
                             /**
                              * 因为从服务器向master服务器反馈拉取偏移量时，偏移量暂用8个字节
                              * @see HAService.HAClient#reportSlaveMaxOffset(long)
-                             * 这里为了取拉取偏移量的期食品偏移量为8的整数倍，是为了处理网络中的沾包？
+                             * 这里取pos为8的整数倍，是为了处理网络中的沾包？
                              *
-                             * -8为了获取其实偏移量，通过起始偏移量读取8个字节后去从服务器向master服务器反馈拉取偏移量
+                             * -8为了获取起始偏移量，通过起始偏移量读取8个字节后去从服务器向master服务器反馈拉取偏移量
                              */
                             long readOffset = this.byteBufferRead.getLong(pos - 8);
                             //设置当前byteBufferRead的读指针。
                             this.processPostion = pos;
                             // 设置从服务器的拉取偏移量
                             HAConnection.this.slaveAckOffset = readOffset;
-                            //master第一次收到slave反馈的拉取偏移量，那么更新，正常slaveRequestOffset应该为0，当然如果主从服务器均重启，且从磁盘中恢复了之前的commitlog文件就不为0了
+                            //master第一次收到slave反馈的拉取偏移量，那么更新，此时readOffset=0
+                            // 正常slaveRequestOffset应该为0，当然如果主从服务器均重启，且从磁盘中恢复了之前的commitlog文件就不为0了
                             if (HAConnection.this.slaveRequestOffset < 0) {
                                 HAConnection.this.slaveRequestOffset = readOffset;
                                 log.info("slave[" + HAConnection.this.clientAddr + "] request offset " + readOffset);
@@ -463,7 +466,7 @@ public class HAConnection {
             // Write Header
             // 循环判断byteBufferHeader中是否有剩余空间可写。
             while (this.byteBufferHeader.hasRemaining()) {
-                //那么将数据写入同道中
+                //那么将数据写入通道中
                 int writeSize = this.socketChannel.write(this.byteBufferHeader);
                 if (writeSize > 0) {
                     //写入数据大于0，那么更新lastWriteTimestamp

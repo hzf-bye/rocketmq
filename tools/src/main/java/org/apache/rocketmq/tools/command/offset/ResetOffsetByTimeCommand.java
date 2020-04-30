@@ -31,6 +31,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 重置消息消费组的消费进度，根据时间
+ */
 public class ResetOffsetByTimeCommand implements SubCommand {
 
     @Override
@@ -45,18 +48,22 @@ public class ResetOffsetByTimeCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
+        //消费者所属组名
         Option opt = new Option("g", "group", true, "set the consumer group");
         opt.setRequired(true);
         options.addOption(opt);
 
+        //topic名称
         opt = new Option("t", "topic", true, "set the topic");
         opt.setRequired(true);
         options.addOption(opt);
 
+        //时间戳
         opt = new Option("s", "timestamp", true, "set the timestamp[now|currentTimeMillis|yyyy-MM-dd#HH:mm:ss:SSS]");
         opt.setRequired(true);
         options.addOption(opt);
 
+        //通过时间戳强制回滚（true|false），默认为true
         opt = new Option("f", "force", true, "set the force rollback by timestamp switch[true|false]");
         opt.setRequired(false);
         options.addOption(opt);

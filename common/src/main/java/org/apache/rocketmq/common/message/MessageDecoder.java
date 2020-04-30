@@ -117,19 +117,10 @@ public class MessageDecoder {
 
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception{
 
-        String msgId = "0A644A05000D77774571685080CB00FE";
-        byte[] ip = UtilAll.string2bytes(msgId.substring(0, 8));
-        byte[] port = UtilAll.string2bytes(msgId.substring(8, 16));
-        ByteBuffer bb = ByteBuffer.wrap(port);
-        int portInt = bb.getInt(0);
-
-        // offset
-        byte[] data = UtilAll.string2bytes(msgId.substring(16, 32));
-        bb = ByteBuffer.wrap(data);
-        long offset = bb.getLong(0);
-        System.out.println();
+        String msgId = "0A644A3B000D1E7AB39082BFB37804A4";
+        decodeMessageId(msgId);
 
     }
 

@@ -41,6 +41,12 @@ import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 根据消息唯一id查询消息
+ * 消息id，此消息id记录了消息所在broker的ip+port，以及消息的物理偏移量。
+ * @see MessageDecoder#createMessageId(java.nio.ByteBuffer, java.nio.ByteBuffer, long)
+ * 因此可以通过此msgId解析出消息的物理偏移量从而查找消息
+ */
 public class QueryMsgByIdSubCommand implements SubCommand {
     public static void queryById(final DefaultMQAdminExt admin, final String msgId) throws MQClientException,
         RemotingException, MQBrokerException, InterruptedException, IOException {

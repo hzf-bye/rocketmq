@@ -25,6 +25,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 删除未使用的topic
+ */
 public class CleanUnusedTopicCommand implements SubCommand {
 
     @Override

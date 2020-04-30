@@ -27,6 +27,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 查看生产组连接信息
+ */
 public class ProducerConnectionSubCommand implements SubCommand {
 
     @Override

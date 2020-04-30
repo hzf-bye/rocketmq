@@ -1841,7 +1841,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         private boolean isSpaceToDelete() {
-            //diskMaxUsedSpaceRatio表示commitlog、consumequeue文件所在分区的最大的使用量，如果超过该值，则需要立即清除过期文件
+            //diskMaxUsedSpaceRatio表示commitlog、consumequeue文件所在分区的最大的使用量，如果超过该值，则需要立即清除过期文件，默认值75
             double ratio = DefaultMessageStore.this.getMessageStoreConfig().getDiskMaxUsedSpaceRatio() / 100.0;
 
             //表示是否需要立即执行清除过期文件操作

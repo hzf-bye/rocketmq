@@ -28,6 +28,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 获取nameserver配置
+ */
 public class GetNamesrvConfigCommand implements SubCommand {
 
     @Override

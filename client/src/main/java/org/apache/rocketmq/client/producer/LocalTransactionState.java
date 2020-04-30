@@ -29,7 +29,7 @@ public enum LocalTransactionState {
      */
     ROLLBACK_MESSAGE,
     /**
-     * 结束事务，但不做任何处理
+     * 事务状态未知，broker不做任何处理，等待下一次回查
      */
     UNKNOW,
 }

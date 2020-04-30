@@ -37,6 +37,12 @@ import org.apache.rocketmq.tools.admin.api.MessageTrack;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 根据消息唯一键查询消息
+ * 消息唯一id，此消息在消息生成者客户端生成
+ * @see MessageClientIDSetter#setUniqID(org.apache.rocketmq.common.message.Message)
+ * @see DefaultMQProducerImpl#sendKernelImpl(org.apache.rocketmq.common.message.Message, org.apache.rocketmq.common.message.MessageQueue, org.apache.rocketmq.client.impl.CommunicationMode, org.apache.rocketmq.client.producer.SendCallback, org.apache.rocketmq.client.impl.producer.TopicPublishInfo, long)
+ */
 public class QueryMsgByUniqueKeySubCommand implements SubCommand {
 
     public static void queryById(final DefaultMQAdminExt admin, final String topic,

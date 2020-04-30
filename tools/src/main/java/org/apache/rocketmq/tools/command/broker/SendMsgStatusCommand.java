@@ -28,6 +28,9 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 测试broker消息发送性能
+ */
 public class SendMsgStatusCommand implements SubCommand {
 
     private static Message buildMessage(final String topic, final int messageSize) throws UnsupportedEncodingException {

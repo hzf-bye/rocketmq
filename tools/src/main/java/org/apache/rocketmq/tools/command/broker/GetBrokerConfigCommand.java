@@ -35,6 +35,9 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 获取broker配置
+ */
 public class GetBrokerConfigCommand implements SubCommand {
     @Override
     public String commandName() {

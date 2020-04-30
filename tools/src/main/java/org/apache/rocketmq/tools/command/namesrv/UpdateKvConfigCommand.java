@@ -24,6 +24,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 更新nameserver kv配置
+ */
 public class UpdateKvConfigCommand implements SubCommand {
     @Override
     public String commandName() {

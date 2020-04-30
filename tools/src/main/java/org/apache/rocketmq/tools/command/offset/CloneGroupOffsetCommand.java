@@ -30,6 +30,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 克隆消费组进度
+ */
 public class CloneGroupOffsetCommand implements SubCommand {
     @Override
     public String commandName() {

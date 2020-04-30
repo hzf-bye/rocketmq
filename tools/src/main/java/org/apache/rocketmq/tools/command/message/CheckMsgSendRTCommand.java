@@ -29,6 +29,9 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 检查消息发送响应时间
+ */
 public class CheckMsgSendRTCommand implements SubCommand {
     private static String brokerName = "";
     private static int queueId = 0;

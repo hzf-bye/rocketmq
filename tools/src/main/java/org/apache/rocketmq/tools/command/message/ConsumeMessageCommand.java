@@ -31,6 +31,9 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 import java.util.Set;
 
+/**
+ * 消息消息
+ */
 public class ConsumeMessageCommand implements SubCommand {
 
     private String topic = null;

@@ -33,6 +33,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 查看消息队列负载情况
+ */
 public class AllocateMQSubCommand implements SubCommand {
     @Override
     public String commandName() {

@@ -27,6 +27,9 @@ import org.apache.rocketmq.tools.monitor.DefaultMonitorListener;
 import org.apache.rocketmq.tools.monitor.MonitorConfig;
 import org.apache.rocketmq.tools.monitor.MonitorService;
 
+/**
+ * 开启rocketMq监控
+ */
 public class StartMonitoringSubCommand implements SubCommand {
     private final InternalLogger log = ClientLogger.getLog();
 

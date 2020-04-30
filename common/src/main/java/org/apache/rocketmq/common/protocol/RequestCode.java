@@ -80,7 +80,13 @@ public class RequestCode {
     // Broker 查询队列最早消息对应时间
     public static final int GET_EARLIEST_MSG_STORETIME = 32;
 
-    // Broker 根据消息ID来查询消息
+
+    /**
+     * 根据消息唯一id查询消息
+     * 消息id，此消息id记录了消息所在broker的ip+port，以及消息的物理偏移量。
+     * @see MessageDecoder#createMessageId(java.nio.ByteBuffer, java.nio.ByteBuffer, long)
+     * 因此可以通过此msgId解析出消息的物理偏移量从而查找消息
+     */
     public static final int VIEW_MESSAGE_BY_ID = 33;
 
     /**
@@ -108,7 +114,9 @@ public class RequestCode {
      */
     public static final int GET_CONSUMER_LIST_BY_GROUP = 38;
 
-    // Broker 主动向Producer回查事务状态
+    /**
+     * 事务消息时Broker向Producer回查事务状态
+     */
     public static final int CHECK_TRANSACTION_STATE = 39;
 
     /**
@@ -212,7 +220,9 @@ public class RequestCode {
     public static final int RESET_CONSUMER_CLIENT_OFFSET = 220;
     // 客户端订阅消息
     public static final int GET_CONSUMER_STATUS_FROM_CLIENT = 221;
-    // 通知 broker 调用 offset 重置处理
+    /**
+     * 通知 broker 重置消息消费组的消费进度，根据时间
+     */
     public static final int INVOKE_BROKER_TO_RESET_OFFSET = 222;
     // 通知 broker 调用客户端订阅消息处理
     public static final int INVOKE_BROKER_TO_GET_CONSUMER_STATUS = 223;

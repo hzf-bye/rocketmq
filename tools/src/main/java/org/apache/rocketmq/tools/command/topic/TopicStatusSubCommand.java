@@ -31,6 +31,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 查看topic消息消费状态
+ */
 public class TopicStatusSubCommand implements SubCommand {
 
     @Override

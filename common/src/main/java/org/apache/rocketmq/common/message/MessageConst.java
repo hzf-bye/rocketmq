@@ -82,6 +82,7 @@ public class MessageConst {
     /**
      * @see org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl#sendMessageInTransaction(org.apache.rocketmq.common.message.Message, org.apache.rocketmq.client.producer.TransactionListener, java.lang.Object)
      * 事务消息所属消息生产者组，设置消息生产者组的目的是在查询事务消息本地事务状态时，从该生产者组中随机选择一个消息生产者即可。
+     * @see org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener#sendCheckMessage(org.apache.rocketmq.common.message.MessageExt)
      */
     public static final String PROPERTY_PRODUCER_GROUP = "PGROUP";
     /**
@@ -125,6 +126,11 @@ public class MessageConst {
      * @see org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl#needDiscard(org.apache.rocketmq.common.message.MessageExt, int)
      */
     public static final String PROPERTY_TRANSACTION_CHECK_TIMES = "TRANSACTION_CHECK_TIMES";
+    /**
+     * 消息事务消息回查请求的最晚时间，单位为秒，指的是程序发送消息时，可以指定该事务消息的有效时间，
+     * 只有在这个时间内收到回查才有效，默认null
+     * @see org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl#check(long, int, org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener)
+     */
     public static final String PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS = "CHECK_IMMUNITY_TIME_IN_SECONDS";
 
     public static final String KEY_SEPARATOR = " ";

@@ -449,6 +449,8 @@ public class HAService {
          * @see HAClient#processReadEvent()
          * 源码中 byteBufferRead一直时处于写模式的
          * 接position是写指针，limit是缓冲区大小
+         *
+         * 读取的话需要通过dispatchPostion读取
          */
         private ByteBuffer byteBufferRead = ByteBuffer.allocate(READ_MAX_BUFFER_SIZE);
         /**
@@ -608,7 +610,7 @@ public class HAService {
                         }
                     }
 
-                    //缓冲区可读取的字节数 >= 消息头大消息体
+                    //缓冲区可读取的字节数 >= 消息头+消息体大小
                     if (diff >= (msgHeaderSize + bodySize)) {
                         byte[] bodyData = new byte[bodySize];
                         //将byteBufferRead切换成读模式

@@ -92,6 +92,12 @@ public class MQAdminStartup {
 
         try {
             initLogback();
+            /**
+             * 命令情况
+             * 1. sh mqadmin
+             * 2. mqadmin help updateTopic
+             * 3. sh mqadmin updateTopic -n 127.0.0.1 -t topicTest
+             */
             switch (args.length) {
                 case 0:
                     printHelp();
@@ -124,6 +130,7 @@ public class MQAdminStartup {
                             return;
                         }
 
+                        //设置NameServer地址
                         if (commandLine.hasOption('n')) {
                             String namesrvAddr = commandLine.getOptionValue('n');
                             System.setProperty(MixAll.NAMESRV_ADDR_PROPERTY, namesrvAddr);
@@ -141,61 +148,94 @@ public class MQAdminStartup {
     }
 
     public static void initCommand() {
+        //创建或者更新主题
         initCommand(new UpdateTopicSubCommand());
+        //删除主题
         initCommand(new DeleteTopicSubCommand());
+        //创建或者更新消费者配置信息
         initCommand(new UpdateSubGroupSubCommand());
+        //删除消费组配置信息
         initCommand(new DeleteSubscriptionGroupCommand());
+        //更新Broker配置信息
         initCommand(new UpdateBrokerConfigSubCommand());
+        //更新topic路由信息
         initCommand(new UpdateTopicPermSubCommand());
-
+        //查看topic路由信息
         initCommand(new TopicRouteSubCommand());
+        //查看topic消息消费状态
         initCommand(new TopicStatusSubCommand());
+        //获取topic所在broker集群信息
         initCommand(new TopicClusterSubCommand());
-
+        //获取broker运行统计信息
         initCommand(new BrokerStatusSubCommand());
+        //根据消息id查询消息
         initCommand(new QueryMsgByIdSubCommand());
+        //根据消息索引key查询消息
         initCommand(new QueryMsgByKeySubCommand());
+        //根据消息唯一键查询消息
         initCommand(new QueryMsgByUniqueKeySubCommand());
+        //根据消息逻辑偏移量（consumeQueue中的偏移量）查找消息
         initCommand(new QueryMsgByOffsetSubCommand());
+        //根据消息唯一键查询消息
         initCommand(new QueryMsgByUniqueKeySubCommand());
+        //打印消息
         initCommand(new PrintMessageSubCommand());
+        //根据消息队列打印消息
         initCommand(new PrintMessageByQueueCommand());
+        //测试broker消息发送性能
         initCommand(new SendMsgStatusCommand());
+        //查看broker消费状态
         initCommand(new BrokerConsumeStatsSubCommad());
-
+        //查看生产组连接信息
         initCommand(new ProducerConnectionSubCommand());
+        //查看消费组连接信息
         initCommand(new ConsumerConnectionSubCommand());
+        //查看消费组处理进度，消息消费进度
         initCommand(new ConsumerProgressSubCommand());
+        //查看消息消费组内部线程状态
         initCommand(new ConsumerStatusSubCommand());
+        //克隆消费组进度
         initCommand(new CloneGroupOffsetCommand());
-
+        //查看所有集群下broker运行状态
         initCommand(new ClusterListSubCommand());
+        //查看所有主题信息
         initCommand(new TopicListSubCommand());
-
+        //更新nameserver kv配置
         initCommand(new UpdateKvConfigCommand());
+        //删除nameserver kv配置
         initCommand(new DeleteKvConfigCommand());
 
+        //擦除broker写权限
         initCommand(new WipeWritePermSubCommand());
+        //重置消息消费组的消费进度，根据时间
         initCommand(new ResetOffsetByTimeCommand());
-
+        //创建、更新、删除顺序消息的kv配置
         initCommand(new UpdateOrderConfCommand());
+        //删除过期消息消费队列文件
         initCommand(new CleanExpiredCQSubCommand());
+        //删除未使用的topic
         initCommand(new CleanUnusedTopicCommand());
-
+        //开启rocketMq监控
         initCommand(new StartMonitoringSubCommand());
+        //打印主题与消费组的tps统计信息
         initCommand(new StatsAllSubCommand());
-
+        //查看消息队列负载情况
         initCommand(new AllocateMQSubCommand());
-
+        //检查消息发送响应时间
         initCommand(new CheckMsgSendRTCommand());
+        //测试所有集群消息发送响应时间
         initCommand(new CLusterSendMsgRTCommand());
-
+        //获取nameserver配置
         initCommand(new GetNamesrvConfigCommand());
+        //更新nameserver配置
         initCommand(new UpdateNamesrvConfigCommand());
+        //获取broker配置
         initCommand(new GetBrokerConfigCommand());
-
+        //查询消息消费队列
         initCommand(new QueryConsumeQueueCommand());
+        //发送消息
         initCommand(new SendMessageCommand());
+        //消息消息
         initCommand(new ConsumeMessageCommand());
     }
 

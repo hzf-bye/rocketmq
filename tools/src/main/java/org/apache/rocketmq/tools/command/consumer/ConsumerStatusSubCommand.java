@@ -33,6 +33,9 @@ import org.apache.rocketmq.tools.command.MQAdminStartup;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 查看消息消费组内部线程状态
+ */
 public class ConsumerStatusSubCommand implements SubCommand {
 
     public static void main(String[] args) {

@@ -30,6 +30,7 @@ public class MessageSysFlag {
     public final static int MULTI_TAGS_FLAG = 0x1 << 1;
     /**
      * 0b0000
+     * 事务状态未知，不作任何处理，等待下一次事务状态回查。
      */
     public final static int TRANSACTION_NOT_TYPE = 0;
     /**

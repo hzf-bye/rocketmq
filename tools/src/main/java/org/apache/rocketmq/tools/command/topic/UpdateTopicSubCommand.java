@@ -29,6 +29,10 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 创建或者更新主题
+ * sh mqadmin updateTopic -n 127.0.0.1:9876 -t topicTest
+ */
 public class UpdateTopicSubCommand implements SubCommand {
 
     @Override
@@ -43,30 +47,41 @@ public class UpdateTopicSubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
+        //broker地址，表示主体只在指定分broker服务器上创建 -b -c参数必须有一个不为空，会一次从
+        // nameServer根据集群名称获取集群下的所有master
         Option opt = new Option("b", "brokerAddr", true, "create topic to which broker");
         opt.setRequired(false);
         options.addOption(opt);
 
+        //broker集群名称 -b -c参数必须有一个不为空，-b为空该参数才生效，会一次从
         opt = new Option("c", "clusterName", true, "create topic to which cluster");
         opt.setRequired(false);
         options.addOption(opt);
 
+        //topic
         opt = new Option("t", "topic", true, "topic name");
         opt.setRequired(true);
         options.addOption(opt);
 
+        //读队列，默认8个
         opt = new Option("r", "readQueueNums", true, "set read queue nums");
         opt.setRequired(false);
         options.addOption(opt);
 
+        //写队列，默认8个
         opt = new Option("w", "writeQueueNums", true, "set write queue nums");
         opt.setRequired(false);
         options.addOption(opt);
 
+        /**
+         * 队列权限，默认6，表示客户可写
+         * @see PermName
+         */
         opt = new Option("p", "perm", true, "set topic's permission(2|4|6), intro[2:W 4:R; 6:RW]");
         opt.setRequired(false);
         options.addOption(opt);
 
+        //是否是顺序消息主题，默认false
         opt = new Option("o", "order", true, "set topic's order(true|false");
         opt.setRequired(false);
         options.addOption(opt);

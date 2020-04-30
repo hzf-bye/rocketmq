@@ -86,7 +86,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 checkTime++;
             }
         }
-        //没回查一次+1
+        //每回查一次+1
         msgExt.putUserProperty(MessageConst.PROPERTY_TRANSACTION_CHECK_TIMES, String.valueOf(checkTime));
         return false;
     }
@@ -104,6 +104,14 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         return false;
     }
 
+    /**
+     * 在执行事务消息回查之前，会把该消息再次存储到commitlog找那个，
+     * 当前消息设置最新的物理偏移量。为什么呢？
+     * 只要是因为下文的发送事务消息回查命令是异步处理的，无法同步返回其处理结果，为了避免简化prepare消息队列和处理队列的
+     * 消息消费进度，先存储，然后消费进度向前推进，重复发送的事务消息在事务回查之前会判断消息是否处理过。
+     * 另外一个目的就是因为需要修改消息的检查次数，RocketMq的存储设计采用的是顺序写，如果去修改已存储的消息，
+     * 其性能无法得到保障。
+     */
     private boolean putBackHalfMsgQueue(MessageExt msgExt, long offset) {
         PutMessageResult putMessageResult = putBackToHalfQueueReturnResult(msgExt);
         if (putMessageResult != null
@@ -167,9 +175,13 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                     continue;
                 }
 
+                /**
+                 * 事务完成队列（OP队列中）已经处理的消息的偏移量
+                 * 需要根据doneOpOffset，更新OP队列消息消费进度
+                 */
                 List<Long> doneOpOffset = new ArrayList<>();
                 /**
-                 * 事务prepare消息队列中将要被移除的消息，
+                 * 事务prepare消息队列中的消息已经完成，被提交后或者回滚，需要跳过当前偏移量的消息
                  * key 事务prepare消息队列中的offset
                  * value 事务完成消息队列中的offset
                  */
@@ -228,6 +240,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
                         //判断是否需要丢弃或者跳过此消息
                         if (needDiscard(msgExt, transactionCheckMax) || needSkip(msgExt)) {
+                            //记录日志
                             listener.resolveDiscardMsg(msgExt);
                             newOffset = i + 1;
                             i++;
@@ -240,11 +253,24 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             break;
                         }
 
+                        /**
+                         * 消息已存储的时间，为系统当前时间减去消息出生的时间
+                         */
                         long valueOfCurrentMinusBorn = System.currentTimeMillis() - msgExt.getBornTimestamp();
+                        /**
+                         * 立即检测事务消息的时间，其设计的意义是，应用程序在发送事务消息后，事务不会马上提交，该时间就是假设事务消息发送成功后，
+                         * 应用程序事务提交的时间，在这段时间内，RocketMq任务事务未提交，顾不应该在这个时间段向应用程序发送回查请求。
+                         */
                         long checkImmunityTime = transactionTimeout;
+                        /**
+                         * 消息事务消息回查请求的最晚时间，单位为秒，指的是程序发送消息时，可以指定该事务消息的有效时间，
+                         * 只有在这个时间内收到回查才有效，默认null
+                         */
                         String checkImmunityTimeStr = msgExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
                         if (null != checkImmunityTimeStr) {
+                            //如果消息指定了事务消息过期时间属性，
                             checkImmunityTime = getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+                            //消息已存储的时间小于过期时间，
                             if (valueOfCurrentMinusBorn < checkImmunityTime) {
                                 if (checkPrepareQueueOffset(removeMap, doneOpOffset, msgExt, checkImmunityTime)) {
                                     newOffset = i + 1;
@@ -253,6 +279,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                                 }
                             }
                         } else {
+                            //如果当前时间还未过（应用程序结束事务时间），则跳出本次处理时间，等待下一次再试
                             if ((0 <= valueOfCurrentMinusBorn) && (valueOfCurrentMinusBorn < checkImmunityTime)) {
                                 log.info("New arrived, the miss offset={}, check it later checkImmunity={}, born={}", i,
                                     checkImmunityTime, new Date(msgExt.getBornTimestamp()));
@@ -260,28 +287,66 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             }
                         }
                         List<MessageExt> opMsg = pullResult.getMsgFoundList();
+                        //
+                        /**
+                         * 判断是否需要发送事务回查消息
+                         * 1.如果事务完成队列(RMQ_SYS_TRANS_OP_HALF_TOPIC)中没有待拉取的消息并且已经超过应用程序事务结束时间即transactionTimeout值
+                         * 2.如果从事务完成队列中拉取到消息，并且拉取到的最后一条消息的消息出生时间已经超过transactionTimeout
+                         * 因为在下文中，如果isNeedCheck=true，会调用putBackHalfMsgQueue重新将opMsg放入opQueue中，
+                         * 重新放入的消息被重置了queueOffSet，commitLogOffSet，即将消费位点前移了，放到opQueue最新一条消息中
+                         * 所以如果事务状态回查成功，则fillOpRemoveMap会使得doneOpOffset包含该halfQueue offSet，即使消费位点前移了，后续也不会再重复处理
+                         * 如果事务状态回查失败，则判断拉取到的32条消息的最新一条消息存储时间是否超过超时时间，如果是，那肯定是回查失败的，继续进行回查
+                         * 3.valueOfCurrentMinusBorn<=-1即事务prepare消息的出生时间大于当前时间？
+                         */
+                        //@1
                         boolean isNeedCheck = (opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime)
                             || (opMsg != null && (opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout))
                             || (valueOfCurrentMinusBorn <= -1);
 
+                        //如果需要发送事务回查消息
                         if (isNeedCheck) {
+                            /**
+                             * 则现将消息再次发送到事务准备消息队列。发送成功返回true。
+                             *
+                             * 在执行事务消息回查之前，会把该消息再次存储到commitlog找那个，当前消息设置最新的物理偏移量。为什么呢？
+                             * 只要是因为下文的发送事务消息回查命令是异步处理的，无法同步返回其处理结果，为了避免简化prepare消息队列和处理队列的
+                             * 消息消费进度，先存储，然后消费进度向前推进，重复发送的事务消息在事务回查之前会判断消息是否处理过。
+                             * 另外一个目的就是因为需要修改消息的检查次数，RocketMq的存储设计采用的是顺序写，如果去修改已存储的消息，
+                             * 其性能无法得到保障。
+                             */
                             if (!putBackHalfMsgQueue(msgExt, i)) {
                                 continue;
                             }
+                            /**
+                             * 发送具体的事务回查命令，使用线程池来异步发送回查的消息，为了回查消息消费进度的简化，只需要发送了回查消息，
+                             * 当前回查进度也会向前推进(@3标记)，如果回查失败，上一步新增的消息(putBackHalfMsgQueue方法)
+                             * 将可以再次发送回查消息，那如果回查消息发送成功，会不会下一次有重复发送回查消息呢？
+                             * 这个可以根据OP队列中的消息来判断是否重复，如果回查消息发送成功并且消息服务器完成提交或回滚操作，
+                             * 这条消息会发送到OP队列中，然后首先会通过fillOpRemoveMap方法一次拉取32条消息，那又如何保证一定能拉取到与当前
+                             * 消息对应的处理记录呢？其实就是通过上面的isNeedCheck(@1标记)的判断逻辑，如果此批消息最后一条未超过事务延迟消息，
+                             * 则继续拉取更多消息进行判断(@2,@4标记)，OP队列也会随着回查进度的推进而推进。
+                             *
+                             */
                             listener.resolveHalfMsg(msgExt);
                         } else {
+                            //如果判断不需要发送事务回查消息，则加载更多的已处理消息进行筛选。
+                            //@2
                             pullResult = fillOpRemoveMap(removeMap, opQueue, pullResult.getNextBeginOffset(), halfOffset, doneOpOffset);
                             log.info("The miss offset:{} in messageQueue:{} need to get more opMsg, result is:{}", i,
                                 messageQueue, pullResult);
                             continue;
                         }
                     }
+                    //@3
                     newOffset = i + 1;
                     i++;
                 }
+                //更新事务prepare消息队列的消费进度
                 if (newOffset != halfOffset) {
                     transactionalMessageBridge.updateConsumeOffset(messageQueue, newOffset);
                 }
+                //更新事务完成消息队列的消费进度
+                //@4
                 long newOpOffset = calculateOpOffset(doneOpOffset, opOffset);
                 if (newOpOffset != opOffset) {
                     transactionalMessageBridge.updateConsumeOffset(opQueue, newOpOffset);
@@ -342,6 +407,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             log.warn("The miss op offset={} in queue={} is empty, pullResult={}", pullOffsetOfOp, opQueue, pullResult);
             return pullResult;
         }
+        //遍历op队列中的消息
         for (MessageExt opMessageExt : opMsg) {
             /**
              * 当消息写入事务完成消息队列时，其消息体就是之前消息在事务prepare队列中逻辑偏移量（consumequeue中的偏移量）
@@ -349,7 +415,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
              * @see TransactionalMessageUtil#REMOVETAG
              * @see TransactionalMessageBridge#addRemoveTagInTransactionOp(org.apache.rocketmq.common.message.MessageExt, org.apache.rocketmq.common.message.MessageQueue)
              *
-             * 在事务队列中保存的queueOffset，说明此queueOffset对应的事务prepare中的消息已经被提交或者回滚了，不需要再处理了。
+             * 在op队列中保存的queueOffset，说明此queueOffset对应的事务prepare中的消息已经被提交或者回滚了，不需要再处理了。
              */
             Long queueOffset = getLong(new String(opMessageExt.getBody(), TransactionalMessageUtil.charset));
             log.info("Topic: {} tags: {}, OpOffset: {}, HalfOffset: {}", opMessageExt.getTopic(),
@@ -357,10 +423,12 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
             if (TransactionalMessageUtil.REMOVETAG.equals(opMessageExt.getTags())) {
                 if (queueOffset < miniOffset) {
-                    //
+                    //op队列中的当前消息小于事务prepare消息队列中的消息，说明当此消息对应的事务prepare队列的消息已经处理了，
+                    // 放入doneOpOffset，避免重复处理需要更新op队列的消费进度
                     doneOpOffset.add(opMessageExt.getQueueOffset());
                 } else {
-                    //事务prepare消息队列中 queueOffset 偏移量的消息已经提交或者回滚了，需要被移除
+                    //事务prepare消息队列中 queueOffset 偏移量的消息已经在op队列中存在了说明该事务消息已经提交或者回滚了
+                    //放入removeMap中，如果之后事务prepare队列中的offset在此removeMap中，则表示此事务已经完结
                     removeMap.put(queueOffset, opMessageExt.getQueueOffset());
                 }
             } else {

@@ -29,6 +29,9 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
 
+/**
+ * 删除消费组配置信息
+ */
 public class DeleteSubscriptionGroupCommand implements SubCommand {
     @Override
     public String commandName() {

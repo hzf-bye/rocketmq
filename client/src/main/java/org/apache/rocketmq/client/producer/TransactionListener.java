@@ -25,6 +25,8 @@ public interface TransactionListener {
      * 本地事务方法，
      * 该方法的职责是记录事务消息的本地事务状态，例如可以加个消息唯一id存储在数据中，
      * 并且该方法与业务代码同处于一个事务中，与业务事务要么一起成功，要么一起失败。
+     *
+     * 之后再调用checkLocalTransaction方法查询事务状态
      * @param msg Half(prepare) message
      * @param arg Custom business parameter
      * @return Transaction state

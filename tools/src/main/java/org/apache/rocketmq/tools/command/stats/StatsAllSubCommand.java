@@ -37,6 +37,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 打印主题与消费组的tps统计信息
+ */
 public class StatsAllSubCommand implements SubCommand {
     public static void printTopicDetail(final DefaultMQAdminExt admin, final String topic, final boolean activeTopic)
         throws RemotingException, MQClientException, InterruptedException, MQBrokerException {

@@ -398,7 +398,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
 
         /**
-         * 从processQueue中移除这批消息，这里返回的offset是移除该批消息后最小的偏移量，如果移除后processQueue中不存在消息则返回processQueue最大偏移量+1
+         * 从processQueue中移除这批消息，这里返回的offset是移除该批消息后剩下的未最小的偏移量，如果移除后processQueue中不存在消息则返回processQueue最大偏移量+1
          */
         long offset = consumeRequest.getProcessQueue().removeMessage(consumeRequest.getMsgs());
         if (offset >= 0 && !consumeRequest.getProcessQueue().isDropped()) {

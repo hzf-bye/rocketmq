@@ -30,6 +30,9 @@ public class MessageExt extends Message {
      */
     private int queueId;
 
+    /**
+     * 消息大小
+     */
     private int storeSize;
 
     /**
@@ -43,7 +46,7 @@ public class MessageExt extends Message {
     private int sysFlag;
 
     /**
-     * 息生产者调用消息发送API的时间戳
+     * 消息生产者调用消息发送API的时间戳
      */
     private long bornTimestamp;
 

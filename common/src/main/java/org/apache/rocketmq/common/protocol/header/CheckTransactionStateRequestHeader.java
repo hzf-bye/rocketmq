@@ -25,12 +25,30 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class CheckTransactionStateRequestHeader implements CommandCustomHeader {
+    /**
+     * 消息在consumeQueue中的偏移量
+     */
     @CFNotNull
     private Long tranStateTableOffset;
+    /**
+     * 消息物理偏移量
+     */
     @CFNotNull
     private Long commitLogOffset;
+    /**
+     * 消息唯一id，此消息在消息生成者客户端生成
+     * @see MessageClientIDSetter#setUniqID(org.apache.rocketmq.common.message.Message)
+     * @see DefaultMQProducerImpl#sendKernelImpl(org.apache.rocketmq.common.message.Message, org.apache.rocketmq.common.message.MessageQueue, org.apache.rocketmq.client.impl.CommunicationMode, org.apache.rocketmq.client.producer.SendCallback, org.apache.rocketmq.client.impl.producer.TopicPublishInfo, long)
+     */
     private String msgId;
+    /**
+     * 事务消息id 同msgId
+     */
     private String transactionId;
+    /**
+     * 消息id，此消息id记录了消息所在broker的ip+port，以及消息的物理偏移量。
+     * @see MessageDecoder#createMessageId(java.nio.ByteBuffer, java.nio.ByteBuffer, long)
+     */
     private String offsetMsgId;
 
     @Override

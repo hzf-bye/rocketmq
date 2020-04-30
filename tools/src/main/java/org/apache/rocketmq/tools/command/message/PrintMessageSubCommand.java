@@ -32,6 +32,9 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 打印消息
+ */
 public class PrintMessageSubCommand implements SubCommand {
 
     public static long timestampFormat(final String value) {

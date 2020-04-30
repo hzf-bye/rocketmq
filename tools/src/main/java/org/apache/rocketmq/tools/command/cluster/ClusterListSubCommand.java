@@ -35,6 +35,9 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 查看所有集群下broker运行状态
+ */
 public class ClusterListSubCommand implements SubCommand {
 
     @Override

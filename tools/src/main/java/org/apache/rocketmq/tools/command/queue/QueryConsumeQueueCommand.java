@@ -30,6 +30,9 @@ import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 
+/**
+ * 查询消息消费队列
+ */
 public class QueryConsumeQueueCommand implements SubCommand {
 
     public static void main(String[] args) {

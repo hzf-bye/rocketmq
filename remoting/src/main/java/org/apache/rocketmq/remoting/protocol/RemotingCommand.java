@@ -56,10 +56,11 @@ public class RemotingCommand {
     // 1, Oneway
     // 1, RESPONSE_COMMAND
     /**
-     * 缓存继承自{@link CommandCustomHeader}的类中的属性书否可以为空
+     * 缓存继承自{@link CommandCustomHeader}的类中的属性是否可以为空
      * 被{@link CFNotNull}注解修饰的属性则不能为空
      *
-     * value:true-标识可空，即改属性没有被{@link CFNotNull}注解修饰，false-反之
+     * value:true-标识可空，即该属性没有被{@link CFNotNull}注解修饰，false-反之
+     * @see RemotingCommand#isFieldNullable(java.lang.reflect.Field)
      */
     private static final Map<Field, Boolean> NULLABLE_FIELD_CACHE = new HashMap<Field, Boolean>();
     private static final String STRING_CANONICAL_NAME = String.class.getCanonicalName();

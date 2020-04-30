@@ -32,6 +32,9 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 删除主题
+ */
 public class DeleteTopicSubCommand implements SubCommand {
     public static void deleteTopic(final DefaultMQAdminExt adminExt,
         final String clusterName,

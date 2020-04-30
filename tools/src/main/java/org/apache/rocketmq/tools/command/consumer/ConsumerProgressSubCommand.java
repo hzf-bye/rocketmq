@@ -45,6 +45,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 查看消费组处理进度，消息消费进度
+ */
 public class ConsumerProgressSubCommand implements SubCommand {
     private final InternalLogger log = ClientLogger.getLog();
 

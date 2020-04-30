@@ -34,6 +34,9 @@ import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+/**
+ * 获取broker运行统计信息
+ */
 public class BrokerStatusSubCommand implements SubCommand {
 
     @Override

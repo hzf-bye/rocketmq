@@ -96,7 +96,7 @@ public class MixAll {
     public static final String CONSUME_CONTEXT_TYPE = "ConsumeContextType";
 
     /**
-     * 事务消息时，消息的topic
+     * 事务prepare消息时，消息的topic
      * @see org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge#parseHalfMessageInner(org.apache.rocketmq.store.MessageExtBrokerInner)
      */
     public static final String RMQ_SYS_TRANS_HALF_TOPIC = "RMQ_SYS_TRANS_HALF_TOPIC";
@@ -104,6 +104,8 @@ public class MixAll {
      * 事务消息提交后，将之前的事务prepare消息存储到此topic中，
      * 表示该事务消息（prepare状态的消息）已经处理过了（提交或者回滚）
      * 为未处理的事务进行事务回查时提交查找依据。
+     * @see org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge#addRemoveTagInTransactionOp(org.apache.rocketmq.common.message.MessageExt, org.apache.rocketmq.common.message.MessageQueue)
+     * 此topic对应的消息body就是事务prepare消息对应的在consumeQueue文件中的偏移量
      * @see org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge#addRemoveTagInTransactionOp(org.apache.rocketmq.common.message.MessageExt, org.apache.rocketmq.common.message.MessageQueue)
      */
     public static final String RMQ_SYS_TRANS_OP_HALF_TOPIC = "RMQ_SYS_TRANS_OP_HALF_TOPIC";
