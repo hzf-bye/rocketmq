@@ -28,12 +28,22 @@ import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.protocol.body.KVTable;
 import org.apache.rocketmq.namesrv.NamesrvController;
+import org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor;
+
 public class KVConfigManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
     private final NamesrvController namesrvController;
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    /**
+     * key {@link org.apache.rocketmq.common.namesrv.NamesrvUtil#NAMESPACE_ORDER_TOPIC_CONFIG}
+     * 缓存的是顺序消息 topic信息
+     * @see DefaultRequestProcessor#registerBrokerWithFilterServer(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+     * @see org.apache.rocketmq.broker.BrokerController#doRegisterBrokerAll(boolean, boolean, org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper)
+     * 在broker发送心跳信息后返回此部分信息，然后同步到broker中
+     */
     private final HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable =
         new HashMap<String, HashMap<String, String>>();
 

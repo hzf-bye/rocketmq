@@ -31,7 +31,7 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 /**
  * 创建或者更新主题
- * sh mqadmin updateTopic -n 127.0.0.1:9876 -t topicTest
+ * sh mqadmin updateTopic -n 127.0.0.1:9876 -b 127.0.0.1:10911 -t topicTest
  */
 public class UpdateTopicSubCommand implements SubCommand {
 
@@ -47,13 +47,14 @@ public class UpdateTopicSubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        //broker地址，表示主体只在指定分broker服务器上创建 -b -c参数必须有一个不为空，会一次从
+        //broker地址，表示主题只在指定broker服务器上创建 -b -c参数必须有一个不为空，会一次从
         // nameServer根据集群名称获取集群下的所有master
         Option opt = new Option("b", "brokerAddr", true, "create topic to which broker");
         opt.setRequired(false);
         options.addOption(opt);
 
         //broker集群名称 -b -c参数必须有一个不为空，-b为空该参数才生效，会一次从
+        //nameServer根据集群名称获取集群下的所有master broker
         opt = new Option("c", "clusterName", true, "create topic to which cluster");
         opt.setRequired(false);
         options.addOption(opt);

@@ -28,6 +28,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
+import org.apache.rocketmq.broker.processor.AdminBrokerProcessor;
 import org.apache.rocketmq.broker.processor.ClientManageProcessor;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.ConfigManager;
@@ -58,6 +59,11 @@ public class TopicConfigManager extends ConfigManager {
      * @see ClientManageProcessor#heartBeat(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
      * @see TopicConfigManager#createTopicInSendMessageBackMethod(java.lang.String, int, int, int)
      * 其中重试topic的缓存是在客户端与Broker发送心跳的时候创建
+     *
+     * topicConfigTable的持久化是在更新topicConfigTable的时候
+     * @see TopicConfigManager#createTopicInSendMessageMethod(java.lang.String, java.lang.String, java.lang.String, int, int)
+     * @see TopicConfigManager#createTopicInSendMessageBackMethod(java.lang.String, int, int, int)
+     * @see AdminBrokerProcessor#updateAndCreateTopic(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
      *
      */
     private final ConcurrentMap<String, TopicConfig> topicConfigTable =
