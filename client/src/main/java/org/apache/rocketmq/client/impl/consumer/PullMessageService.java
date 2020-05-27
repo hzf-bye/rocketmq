@@ -131,7 +131,7 @@ public class PullMessageService extends ServiceThread {
         while (!this.isStopped()) {
             try {
                 /**
-                 * 从pullRequestQueue获取一个PullRequest消息拉取任务，如果pullRequestQueue为空，线程将阻塞，知道有任务被放入队列中。
+                 * 从pullRequestQueue获取一个PullRequest消息拉取任务，如果pullRequestQueue为空，线程将阻塞，直到有任务被放入队列中。
                  * @see PullMessageService#executePullRequestLater(org.apache.rocketmq.client.impl.consumer.PullRequest, long)  中将任务放入队列中。
                  */
                 PullRequest pullRequest = this.pullRequestQueue.take();

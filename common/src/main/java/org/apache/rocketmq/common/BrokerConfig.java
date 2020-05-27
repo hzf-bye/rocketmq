@@ -173,6 +173,20 @@ public class BrokerConfig {
     private boolean disableConsumeIfConsumerReadSlowly = false;
     private long consumerFallbehindThreshold = 1024L * 1024 * 1024 * 16;
 
+    /**
+     * 1. 消息发送者向 Broker 发送消息写入请求，Broker 端在接收到请求后会首先放入一个队列中(SendThreadPoolQueue)，默认容量为 10000。
+     * 2. Broker 会专门使用一个线程池{@link org.apache.rocketmq.broker.BrokerController#sendMessageExecutor}去从队列中获取任务并执行消息写入请求，为了保证消息的顺序处理，该线程池默认线程个数为1。
+     *
+     * 如果 Broker 端受到垃圾回收等等因素造成单条写入数据发生抖动，单个 Broker 端积压的请求太多从而得不到及时处理，会极大的造成客户端消息发送的时间延长。
+     *
+     * 设想一下，如果由于 Broker 压力增大，写入一条消息需要500ms甚至超过1s，并且队列中积压了5000条消息，消息发送端的默认超时时间为3s，
+     * 如果按照这样的速度，这些请求在轮到 Broker 执行写入请求时，客户端已经将这个请求超时了，这样不仅会造成大量的无效处理，还会导致客户端发送超时。
+     *
+     * 故 RocketMQ 为了解决该问题，引入 Broker 端快速失败机制，即开启一个定时调度线程，
+     * 每隔10毫秒{@link org.apache.rocketmq.broker.latency.BrokerFastFailure#start()}去检查队列中的第一个排队节点，如果该节点的排队时间已经超过了{@link BrokerConfig#waitTimeMillsInSendQueue}，
+     * 就会取消该队列中所有已超过 200ms 的请求，立即向客户端返回失败，这样客户端能尽快进行重试，因为 Broker 都是集群部署，下次重试可以发送到其他 Broker 上，
+     * 这样能最大程度保证消息发送在默认 3s 的时间内经过重试机制，能有效避免某一台 Broker 由于瞬时压力大而造成的消息发送不可用，从而实现消息发送的高可用。
+     */
     private boolean brokerFastFailureEnable = true;
     private long waitTimeMillsInSendQueue = 200;
     private long waitTimeMillsInPullQueue = 5 * 1000;

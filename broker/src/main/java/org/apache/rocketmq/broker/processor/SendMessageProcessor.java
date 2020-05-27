@@ -302,7 +302,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 //延迟队列主题  %DLQ%+消费组名
                 newTopic = MixAll.getDLQTopic(groupName);
                 int queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
-                //该topic只有写权限。说明消息一单进入DLQ队列（死信队列），RocketMq将不负责再次调度消费，需要人工干预
+                //该topic只有写权限。说明消息一旦进入DLQ队列（死信队列），RocketMq将不负责再次调度消费，需要人工干预
                 topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
                     DLQ_NUMS_PER_GROUP,
                     PermName.PERM_WRITE, 0

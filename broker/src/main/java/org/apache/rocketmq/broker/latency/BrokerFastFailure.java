@@ -88,6 +88,11 @@ public class BrokerFastFailure {
             }
         }
 
+        /**
+         * 详见
+         * @see org.apache.rocketmq.common.BrokerConfig#brokerFastFailureEnable
+         * 中的注释
+         */
         cleanExpiredRequestInQueue(this.brokerController.getSendThreadPoolQueue(),
             this.brokerController.getBrokerConfig().getWaitTimeMillsInSendQueue());
 

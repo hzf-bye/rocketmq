@@ -49,7 +49,7 @@ public class TopicConfig {
      */
     private int topicSysFlag = 0;
     /**
-     * 是否顺序消息
+     * 是否顺序消息topic
      */
     private boolean order = false;
 

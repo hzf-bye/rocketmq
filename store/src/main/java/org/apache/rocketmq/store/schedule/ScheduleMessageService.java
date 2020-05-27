@@ -320,7 +320,7 @@ public class ScheduleMessageService extends ConfigManager {
                         ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
                         //遍历bufferCQ，每一个条目20个字节，
                         for (; i < bufferCQ.getSize(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                            //获取消息区里偏移量
+                            //获取消息物理偏移量
                             long offsetPy = bufferCQ.getByteBuffer().getLong();
                             //获取消息大小
                             int sizePy = bufferCQ.getByteBuffer().getInt();
@@ -376,7 +376,7 @@ public class ScheduleMessageService extends ConfigManager {
                                             log.error(
                                                 "ScheduleMessageService, a message time up, but reput it failed, topic: {} msgId {}",
                                                 msgExt.getTopic(), msgExt.getMsgId());
-                                            //直接定时任务调度 当前遍历到的consumeQueue条目的偏移量的消息
+                                            //直接定时任务调度 当前遍历到的consumeQueue条目的偏移量的消息，即一会继续调度当前条目的消息
                                             ScheduleMessageService.this.timer.schedule(
                                                 new DeliverDelayedMessageTimerTask(this.delayLevel,
                                                     nextOffset), DELAY_FOR_A_PERIOD);

@@ -270,7 +270,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     /**
-     * broker想producer回查事务状态
+     * broker向producer回查事务状态
      */
     @Override
     public void checkTransactionState(final String addr, final MessageExt msg,

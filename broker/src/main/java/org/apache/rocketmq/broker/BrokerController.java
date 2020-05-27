@@ -137,9 +137,19 @@ public class BrokerController {
      *
      */
     private final BlockingQueue<Runnable> sendThreadPoolQueue;
+    /**
+     * 消息拉取线程池中的队列{@link BrokerController#pullMessageExecutor}
+     * 大小默认100000{@link BrokerConfig#pullThreadPoolQueueCapacity}
+     *
+     */
     private final BlockingQueue<Runnable> pullThreadPoolQueue;
     private final BlockingQueue<Runnable> queryThreadPoolQueue;
     private final BlockingQueue<Runnable> clientManagerThreadPoolQueue;
+    /**
+     * 心跳检测线程池中的队列{@link BrokerController#heartbeatExecutor}
+     * 大小默认50000{@link BrokerConfig#heartbeatThreadPoolQueueCapacity}
+     *
+     */
     private final BlockingQueue<Runnable> heartbeatThreadPoolQueue;
     private final BlockingQueue<Runnable> consumerManagerThreadPoolQueue;
     private final FilterServerManager filterServerManager;
@@ -156,10 +166,15 @@ public class BrokerController {
     /**
      * 发送消息执行器
      * 注册线程信息{@link BrokerController#registerProcessor()}
+     *
+     * @see BrokerController#initialize() 中初始化
      */
     private ExecutorService sendMessageExecutor;
     /**
      * 拉取消息执行器
+     * 注册线程信息{@link BrokerController#registerProcessor()}
+     *
+     * @see BrokerController#initialize() 中初始化
      */
     private ExecutorService pullMessageExecutor;
     /**
@@ -174,6 +189,12 @@ public class BrokerController {
      * 客户端管理执行器
      */
     private ExecutorService clientManageExecutor;
+    /**
+     * 心跳检测执行器
+     * 注册线程信息{@link BrokerController#registerProcessor()}
+     *
+     * @see BrokerController#initialize() 中初始化
+     */
     private ExecutorService heartbeatExecutor;
     private ExecutorService consumerManageExecutor;
     /**

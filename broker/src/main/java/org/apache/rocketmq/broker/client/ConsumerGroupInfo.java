@@ -42,6 +42,9 @@ public class ConsumerGroupInfo {
     private final String groupName;
     /**
      * topic订阅关系
+     * @see ConsumerGroupInfo#updateSubscription(java.util.Set)
+     * @see ConsumerManager#registerConsumer(java.lang.String, org.apache.rocketmq.broker.client.ClientChannelInfo, org.apache.rocketmq.common.protocol.heartbeat.ConsumeType, org.apache.rocketmq.common.protocol.heartbeat.MessageModel, org.apache.rocketmq.common.consumer.ConsumeFromWhere, java.util.Set, boolean)
+     * 客户端向服务端发送心跳检测的时候更新
      */
     private final ConcurrentMap<String/* Topic */, SubscriptionData> subscriptionTable =
         new ConcurrentHashMap<String, SubscriptionData>();
