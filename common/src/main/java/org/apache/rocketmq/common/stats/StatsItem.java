@@ -26,14 +26,29 @@ import org.apache.rocketmq.logging.InternalLogger;
 
 public class StatsItem {
 
+    /**
+     * 总数量，统计指标TOPIC_GET_NUMS 指标为例，记录的是消息拉取的总条数，例如一次消息拉取操作获取了32条消息，则该数量增加32。
+     */
     private final AtomicLong value = new AtomicLong(0);
 
+    /**
+     * 改变上述 value 的次数，还是以统计指标TOPIC_GET_NUMS 指标为例，记录的是增加 value 的次数。
+     */
     private final AtomicLong times = new AtomicLong(0);
 
+    /**
+     * 一分钟的快照信息，该 List 只会存储6个元素，每10s记录一次调用快照，超过6条，则移除第一条
+     */
     private final LinkedList<CallSnapshot> csListMinute = new LinkedList<CallSnapshot>();
 
+    /**
+     * 一小时的快照信息，该 List 只会存储6个元素，每10分钟记录一次快照，超过6条，则移除第一条。
+     */
     private final LinkedList<CallSnapshot> csListHour = new LinkedList<CallSnapshot>();
 
+    /**
+     * 一天的快照新，该List 只会存储24个元素，每1小时记录一次快照，超过24条，则移除第一条。
+     */
     private final LinkedList<CallSnapshot> csListDay = new LinkedList<CallSnapshot>();
 
     private final String statsName;
@@ -56,12 +71,17 @@ public class StatsItem {
             double avgpt = 0;
             long sum = 0;
             if (!csList.isEmpty()) {
+                //首先取快照中的第一条消息。
                 CallSnapshot first = csList.getFirst();
+                //取快照列表中的最后一条消息。
                 CallSnapshot last = csList.getLast();
+                //计算这两个时间点 value 的差值，即这段时间内新增的总数。
                 sum = last.getValue() - first.getValue();
+                //计算这段时间内的tps，即每秒处理的消息条数。
                 tps = (sum * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
 
                 long timesDiff = last.getTimes() - first.getTimes();
+                //计算 avgpt ，即平均一次操作新增的消息条数（即平均一次操作，value 新增的个数）。
                 if (timesDiff > 0) {
                     avgpt = (sum * 1.0d) / timesDiff;
                 }

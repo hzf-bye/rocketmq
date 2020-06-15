@@ -153,7 +153,11 @@ public class RebalancePushImpl extends RebalanceImpl {
                     result = lastOffset;
                 }
                 // First start,no offset
-                //如果返回-1，标识该消费队列刚创建
+                /*
+                 * 如果lastOffset为-1,表示当前并未存储其有效偏移量，可以理解为第一次消费，
+                 * 如果是消费组重试主题，从重试队列偏移量为0开始消费；
+                 * 如果是普通主题，则从队列当前的最大的有效偏移量开始消费
+                 */
                 else if (-1 == lastOffset) {
                     if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         result = 0L;
@@ -166,7 +170,7 @@ public class RebalancePushImpl extends RebalanceImpl {
                         }
                     }
                 } else {
-                    //小于-1，说明Broker存储了错误的偏移量，返回-1
+                    //小于-1，说明从远程服务拉取最大偏移量拉取异常或其他情况，则使用-1作为第一次拉取偏移量，返回-1
                     result = -1;
                 }
                 break;
@@ -174,9 +178,11 @@ public class RebalancePushImpl extends RebalanceImpl {
             case CONSUME_FROM_FIRST_OFFSET: {
                 //从Broker中获取当前队列的偏移量
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
+                //如果大于等于0，则从当前该偏移量开始消费。
                 if (lastOffset >= 0) {
                     result = lastOffset;
                 } else if (-1 == lastOffset) {
+                    //如果远程返回-1，表示并没有存储该队列的消息消费进度，从0开始。
                     result = 0L;
                 } else {
                     result = -1;
@@ -186,9 +192,12 @@ public class RebalancePushImpl extends RebalanceImpl {
             case CONSUME_FROM_TIMESTAMP: {
                 //从Broker中获取当前队列的偏移量
                 long lastOffset = offsetStore.readOffset(mq, ReadOffsetType.READ_FROM_STORE);
+                //如果大于等于0，则从当前该偏移量开始消费。
                 if (lastOffset >= 0) {
                     result = lastOffset;
                 } else if (-1 == lastOffset) {
+                    //如果远程返回-1，表示并没有存储该队列的消息消费进度，如果是重试主题，则从当前队列的最大偏移量开始消费，
+                    // 如果是普通主题，则根据时间戳去Broker端查询，根据查询到的偏移量开始消费。
                     if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);

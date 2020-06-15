@@ -44,6 +44,7 @@ import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
+import org.apache.rocketmq.namesrv.processor.DefaultRequestProcessor;
 import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 /**
@@ -61,6 +62,10 @@ public class RouteInfoManager {
      * Topic消息队列路由信息，消息发送时根据路由表进行负载均衡
      * 例如集群中两个Broker，数据格式如下：
      * {"topic1":[{"brokerName":"broker-a","perm":6,"readQueueNums":4,"topicSynFlag":0,"writeQueueNums":4},{"brokerName":"broker-b","perm":6,"readQueueNums":4,"topicSynFlag":0,"writeQueueNums":4}]}
+     * @see DefaultRequestProcessor#registerBroker(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+     * @see RouteInfoManager#registerBroker(java.lang.String, java.lang.String, java.lang.String, long, java.lang.String, org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper, java.util.List, io.netty.channel.Channel)
+     * @see RouteInfoManager#createAndUpdateQueueData(java.lang.String, org.apache.rocketmq.common.TopicConfig)
+     * broker向namesrv发送心跳消息时缓存至此
      */
     private final HashMap<String/* topic */, List<QueueData>> topicQueueTable;
 
@@ -68,18 +73,23 @@ public class RouteInfoManager {
      * Broker基础信息，包含BrokerName、所属集群名称、主备Broker地址。
      * 例如2主2从，数据格式如下：
      * {"broker-b":{"brokerAddrs":{0:"192.168.0.112:10000",1:"192.168.0.113:10000"},"brokerName":"broker-b","cluster":"c1"},"broker-a":{"brokerAddrs":{0:"192.168.0.110:10000",1:"192.168.0.111:10000"},"brokerName":"broker-a","cluster":"c1"}}
+     * @see DefaultRequestProcessor#registerBroker(io.netty.channel.ChannelHandlerContext, org.apache.rocketmq.remoting.protocol.RemotingCommand)
+     * @see RouteInfoManager#registerBroker(java.lang.String, java.lang.String, java.lang.String, long, java.lang.String, org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper, java.util.List, io.netty.channel.Channel)
+     * broker向namesrv发送心跳消息时缓存至此
      */
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
 
     /**
      * Broker集群信息。NameServer每次收到心跳包时会替换该信息。
      * {"c1":["broker-b","broker-a"]}
+     * @see RouteInfoManager#registerBroker(java.lang.String, java.lang.String, java.lang.String, long, java.lang.String, org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper, java.util.List, io.netty.channel.Channel)
      */
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
 
     /**
      * Broker状态信息，NameServer每次收到心跳包时会替换该信息
      * {"192.168.0.113:10000":{"dataVersion":{"counter":0,"timestamp":1578406569554},"haServerAddr":"192.168.0.113:10000","lastUpdateTimestamp":1578406569554},"192.168.0.112:10000":{"dataVersion":{"counter":0,"timestamp":1578406569554},"haServerAddr":"192.168.0.112:10000","lastUpdateTimestamp":1578406569554},"192.168.0.110:10000":{"dataVersion":{"counter":0,"timestamp":1578406569554},"haServerAddr":"192.168.0.110:10000","lastUpdateTimestamp":1578406569553},"192.168.0.111:10000":{"dataVersion":{"counter":0,"timestamp":1578406569554},"haServerAddr":"192.168.0.111:10000","lastUpdateTimestamp":1578406569554}}
+     * @see RouteInfoManager#registerBroker(java.lang.String, java.lang.String, java.lang.String, long, java.lang.String, org.apache.rocketmq.common.protocol.body.TopicConfigSerializeWrapper, java.util.List, io.netty.channel.Channel)
      */
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
 

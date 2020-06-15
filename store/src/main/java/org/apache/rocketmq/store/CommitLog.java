@@ -151,6 +151,7 @@ public class CommitLog {
         this.flushCommitLogService.start();
 
         //当开启transientStorePoolEnable且是异步刷盘且是master broker那么需要启动提交线程
+        //因为只有当isTransientStorePoolEnable方法返回true时才会使用堆外内存。
         if (defaultMessageStore.getMessageStoreConfig().isTransientStorePoolEnable()) {
             this.commitLogService.start();
         }
@@ -801,7 +802,7 @@ public class CommitLog {
                     putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_DISK_TIMEOUT);
                 }
             } else {
-                // 直接唤醒等到的线程，不等到消息存储完成直接返回
+                // 直接唤醒等待的线程，不等到消息存储完成直接返回
                 service.wakeup();
             }
         }
@@ -1124,9 +1125,8 @@ public class CommitLog {
                         //now wake up flush thread.
                         /*
                          * 有数据提交唤醒刷盘线程。
-                         * 根据是否开启transientStorePoolEnable机制来唤醒不同的线程
-                         * 开启的话唤醒FlushRealTimeService线程
-                         * 未开启的话唤醒GroupCommitService线程
+                         * 因为当前线程启动了一定是开启transientStorePoolEnable机制且是异步刷盘master
+                         * 所以唤醒的是FlushRealTimeService线程
                          */
                         flushCommitLogService.wakeup();
                     }
@@ -1134,7 +1134,8 @@ public class CommitLog {
                     if (end - begin > 500) {
                         log.info("Commit data to file costs {} ms", end - begin);
                     }
-                    /* 每提交一次，都会尝试休息200ms，
+                    /**
+                     * 每提交一次，都会尝试休息200ms，
                      * 除非有消息来提前唤醒该线程。也就是方法中
                      * {@link CommitLog#handleDiskFlush(org.apache.rocketmq.store.AppendMessageResult, org.apache.rocketmq.store.PutMessageResult, org.apache.rocketmq.common.message.MessageExt)}
                      * 调用此线程的wakeup方法
@@ -1168,7 +1169,7 @@ public class CommitLog {
                 //默认为false，标识await方法等待时间；如果为true，标识使用Thread.sleep方法等待
                 boolean flushCommitLogTimed = CommitLog.this.defaultMessageStore.getMessageStoreConfig().isFlushCommitLogTimed();
 
-                //FlushRealTimeService线程运行任务间隔，默认50ms
+                //FlushRealTimeService线程运行任务间隔，默认500ms
                 int interval = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushIntervalCommitLog();
                 // 一次刷盘任务至少包含页数，如果待刷写数据不足，小于该参数配置的值，将忽略本息刷盘任务，默认4页
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
@@ -1351,7 +1352,7 @@ public class CommitLog {
         private void doCommit() {
             synchronized (this.requestsRead) {
                 if (!this.requestsRead.isEmpty()) {
-                    //比那里同步刷盘任务列表，根据加入顺序逐一执行刷盘逻辑
+                    //遍历同步刷盘任务列表，根据加入顺序逐一执行刷盘逻辑
                     for (GroupCommitRequest req : this.requestsRead) {
                         // There may be a message in the next file, so a maximum of
                         // two times the flush

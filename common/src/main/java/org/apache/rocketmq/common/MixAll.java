@@ -87,7 +87,7 @@ public class MixAll {
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
 
     /**
-     * 私信队列topic 前缀
+     * 死信队列topic 前缀
      */
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
     public static final String SYSTEM_TOPIC_PREFIX = "rmq_sys_";

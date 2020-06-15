@@ -25,6 +25,8 @@ package org.apache.rocketmq.common.consumer;
 public enum ConsumeFromWhere {
 
     /**
+     * 从Broker消息进度文件中存储的偏移量{@link org.apache.rocketmq.broker.offset.ConsumerOffsetManager#offsetTable}开始消费，
+     * 如果不存在当前消费队列的消费偏移量，则从0开始消费。
      * 从队列当前最大偏移量开始消费，即跳过历史消息
      */
     CONSUME_FROM_LAST_OFFSET,
@@ -36,8 +38,6 @@ public enum ConsumeFromWhere {
     @Deprecated
     CONSUME_FROM_MAX_OFFSET,
     /**
-     * 从Broker消息进度文件中存储的偏移量{@link org.apache.rocketmq.broker.offset.ConsumerOffsetManager#offsetTable}开始消费，
-     * 如果不存在当前消费队列的消费偏移量，则从0开始消费。
      * 从队列当前最小偏移量开始消费，即历史消息（还储存在broker的）全部消费一遍
      */
     CONSUME_FROM_FIRST_OFFSET,

@@ -250,7 +250,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         final int consumeBatchSize = this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
         if (msgs.size() <= consumeBatchSize) {
             //如果当前消息数量小于等于consumeBatchSize，则将消息全部放入consumeRequest中，
-            ConsumeRequest consumeRequest = new ConsumeRequest(msgs, processQueue, messageQueue);
+            ConsumeRequest consumeRequest = new     ConsumeRequest(msgs, processQueue, messageQueue);
             try {
                 //提交到消费线程池中
                 this.consumeExecutor.submit(consumeRequest);
@@ -367,7 +367,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
             case CLUSTERING:
                 List<MessageExt> msgBackFailed = new ArrayList<MessageExt>(consumeRequest.getMsgs().size());
                 /**
-                 * 1.如果消息消费成功 ackIndex+1 == consumeRequest.getMsgs().size()，因此并不会执行sendMessageBack方法，
+                 * 1.如果消息消费成功 默认情况下ackIndex+1 == consumeRequest.getMsgs().size()，因此并不会执行sendMessageBack方法，
                  * 2.只有业务端返回 RECONSUME_LATER 时 ackIndex + 1 == 0 ，该批消息都需要发ACK消息。
                  * 如果ACK消息发送失败，则直接将本批ACK消费发送失败的消息再次封装为ConsumeRequest，
                  *  然后延迟5s重新消费。

@@ -34,7 +34,8 @@ public class BrokerStatsManager {
     /**
      * 成功拉取消息条数的key
      * consumerGroup + topic维度消息数量
-     * @see BrokerStatsManager#statsTable 中的key
+     * GROUP_GET_NUMS是statsTable 中的key
+     * @see BrokerStatsManager#statsTable
      * @see org.apache.rocketmq.broker.processor.PullMessageProcessor#processRequest(io.netty.channel.Channel, org.apache.rocketmq.remoting.protocol.RemotingCommand, boolean)
      */
     public static final String GROUP_GET_NUMS = "GROUP_GET_NUMS";

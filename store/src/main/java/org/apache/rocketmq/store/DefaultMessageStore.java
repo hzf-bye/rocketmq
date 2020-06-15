@@ -78,7 +78,7 @@ public class DefaultMessageStore implements MessageStore {
 
     /**
      * 消息队列存储缓存表，按照消息主题分组。
-     * Broker启起送时，加载完ConsumeQueue文件后初始化
+     * Broker启动时，加载完ConsumeQueue文件后初始化
      * @see DefaultMessageStore#loadConsumeQueue()
      */
     private final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueue>> consumeQueueTable;
@@ -1933,7 +1933,7 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         private void deleteExpiredFiles() {
-            //删除consumequeue物理文件的间隔，因为在一次清楚过程中，可能需要被删除的文件不止一个，该值指定两次删除文件的时间间隔。默认100ms。
+            //删除consumequeue物理文件的间隔，因为在一次清除过程中，可能需要被删除的文件不止一个，该值指定两次删除文件的时间间隔。默认100ms。
             int deleteLogicsFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteConsumeQueueFilesInterval();
 
             //获取commitlog文件最小偏移量。

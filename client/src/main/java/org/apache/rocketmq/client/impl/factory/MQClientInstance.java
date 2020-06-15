@@ -716,7 +716,7 @@ public class MQClientInstance {
                                     if (impl != null) {
                                         /**
                                          * 更新DefaultMQPushConsumerImpl的topic的消息队列信息
-                                         * org.apache.rocketmq.client.impl.consumer.RebalanceImpl#topicSubscribeInfoTable
+                                         * @see org.apache.rocketmq.client.impl.consumer.RebalanceImpl#topicSubscribeInfoTable
                                          */
                                         impl.updateTopicSubscribeInfo(topic, subscribeInfo);
                                     }
