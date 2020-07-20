@@ -79,7 +79,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private final Lock lockChannelTables = new ReentrantLock();
     /**
      * 缓存的Channel信息
-     * key:Broker addr
+     * key:namesrv addr
      */
     private final ConcurrentMap<String /* addr */, ChannelWrapper> channelTables = new ConcurrentHashMap<String, ChannelWrapper>();
 

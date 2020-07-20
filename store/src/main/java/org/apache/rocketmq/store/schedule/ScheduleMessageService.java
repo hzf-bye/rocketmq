@@ -76,6 +76,7 @@ public class ScheduleMessageService extends ConfigManager {
     /**
      * key：消息延迟级别
      * value：该延迟级别对应的延迟时间，单位毫秒
+     * @see org.apache.rocketmq.store.config.MessageStoreConfig#getMessageDelayLevel()
      * 延迟级别{@link MessageStoreConfig#messageDelayLevel}
      * 延迟级别最小为1，比如延迟级别1 那么就代表延迟1s，以此类推
      * @see ScheduleMessageService#parseDelayLevel()
